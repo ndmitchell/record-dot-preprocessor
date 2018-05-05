@@ -34,3 +34,5 @@ executable record-dot-preprocessor
     other-modules:
         Edit
         Lexer
+        Paren
+        Unlexer

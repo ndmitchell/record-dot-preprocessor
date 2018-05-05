@@ -7,8 +7,8 @@ import Data.Char
 import Data.Tuple.Extra
 
 data Lexeme = Lexeme
-    {line :: {-# UNPACK #-} !Int -- ^ 1-based line number
-    ,col :: {-# UNPACK #-} !Int -- ^ 1-based col number
+    {line :: {-# UNPACK #-} !Int -- ^ 1-based line number (0 = generated)
+    ,col :: {-# UNPACK #-} !Int -- ^ 1-based col number (0 = generated)
     ,whitespace :: String -- ^ Prefix spaces and comments
     ,lexeme :: String -- ^ Actual text of the item
     } deriving Show
@@ -16,7 +16,7 @@ data Lexeme = Lexeme
 
 charNewline x = x == '\r' || x == '\n' || x == '\f'
 charSpecial x = x `elem` "(),;[]`{}"
-charAscSymbol x = x `elem` "!#$%&*+./<=>?@\\^|-~"
+charAscSymbol x = x `elem` "!#$%&*+./<=>?@\\^|-~" || x == ':' -- special case for me
 charSymbol x = charAscSymbol x || (isSymbol x && not (charSpecial x) && x `notElem` "_\"\'")
 
 charIdentStart x = isAlpha x || x == '_'
@@ -39,7 +39,7 @@ reposition = go
     where
         go !line !col [] = (line, col)
         go line col (x:xs)
-            | x == '\n' = go (line+1) col xs
+            | x == '\n' = go (line+1) 1 xs
             | x == '\t' = go line (col+8) xs -- technically not totally correct, but please, don't use tabs
             | otherwise = go line (col+1) xs
 
