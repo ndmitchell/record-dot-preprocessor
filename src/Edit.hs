@@ -50,7 +50,7 @@ editAddPreamble xs
     = gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs
     | otherwise = gen prefix : nl : gen imports : nl : xs
     where
-        prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels, UndecidableInstances #-}"
+        prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"
         imports = "import qualified GHC.OverloadedLabels as Z; import qualified Control.Lens as Z"
 
 
@@ -85,12 +85,12 @@ editUpdates xs = continue editUpdates xs
 editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
 editAddInstances xs = xs ++ concatMap (\x -> [nl, gen x])
     [ "instance (" ++ intercalate ", " context ++ ") => Z.IsLabel \"" ++ fname ++ "\" " ++
-      "((t1 -> t2) -> " ++ rtyp ++ " -> t3) " ++
+      "((t1 -> f t2) -> " ++ rtyp ++ " -> f t3) " ++
       "where fromLabel = Z.lens (\\x -> " ++ fname ++ " (x :: " ++ rtyp ++ ")) (\\c x -> c{" ++ fname ++ "=x} :: " ++ rtyp ++ ")"
     | Record rname rargs fields <- parseRecords $ map (fmap lexeme) xs
     , let rtyp = "(" ++ unwords (rname : rargs) ++ ")"
     , (fname, ftyp) <- fields
-    , let context = ["Functor f", "t1 ~ " ++ ftyp, "t2 ~ f t1", "t3 ~ f " ++ rtyp]
+    , let context = ["Functor f", "t1 ~ " ++ ftyp, "t2 ~ t1", "t3 ~ " ++ rtyp]
     ]
 
 
