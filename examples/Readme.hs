@@ -7,5 +7,5 @@ display c = c.name ++ " is run by " ++ c.owner.name
 nameAfterOwner :: Company -> Company
 nameAfterOwner c = c{name = c.owner.name ++ "'s Company"}
 
-main = print $ display $ nameAfterOwner c
+main = putStrLn $ display $ nameAfterOwner c
     where c = Company "A" $ Person "B" 3
