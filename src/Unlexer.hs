@@ -6,4 +6,4 @@ module Unlexer(unlexer) where
 import Lexer
 
 unlexer :: FilePath -> [Lexeme] -> String
-unlexer _ xs = concat [whitespace ++ lexeme | Lexeme{..} <- xs]
+unlexer _ xs = concat [lexeme ++ whitespace | Lexeme{..} <- xs]

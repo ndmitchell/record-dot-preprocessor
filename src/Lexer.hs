@@ -9,8 +9,8 @@ import Data.Tuple.Extra
 data Lexeme = Lexeme
     {line :: {-# UNPACK #-} !Int -- ^ 1-based line number (0 = generated)
     ,col :: {-# UNPACK #-} !Int -- ^ 1-based col number (0 = generated)
-    ,whitespace :: String -- ^ Prefix spaces and comments
     ,lexeme :: String -- ^ Actual text of the item
+    ,whitespace :: String -- ^ Suffix spaces and comments
     } deriving Show
 
 
@@ -28,8 +28,8 @@ lexer = go 1 1
     where
         go line col "" = []
         go line col xs
-            | (whitespace, xs) <- lexerWhitespace xs
-            , (lexeme, xs) <- lexerLexeme xs
+            | (lexeme, xs) <- lexerLexeme xs
+            , (whitespace, xs) <- lexerWhitespace xs
             , (line2, col2) <- reposition line col $ whitespace ++ lexeme
             = Lexeme{..} : go line2 col2 xs
 

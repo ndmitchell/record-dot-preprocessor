@@ -12,14 +12,21 @@ edit :: [Paren Lexeme] -> [Paren Lexeme]
 edit = editAddPreamble . editAddInstances . editSelectors . editUpdates
 
 
-nl = Item $ Lexeme 0 0 "\n" ""
-spc = Item $ Lexeme 0 0 " " ""
+nl = Item $ Lexeme 0 0 "" "\n"
+spc = Item $ Lexeme 0 0 "" " "
 gen = Item . gen_
-gen_ = Lexeme 0 0 ""
-paren xs = Paren (gen_ "(") xs (gen_ ")")
+gen_ x = Lexeme 0 0 x ""
+
+paren xs = case unsnoc xs of
+    Just (xs,Item x) -> Paren (gen_ "(") (xs `snoc` Item x{whitespace=""}) (gen_ ")"){whitespace=whitespace x}
+    _ -> Paren (gen_ "(") xs (gen_ ")")
 
 is x (Item y) = lexeme y == x
 is x _ = False
+
+noWhitespace (Item x) = null $ whitespace x
+noWhitespace (Paren _ _ x) = null $ whitespace x
+
 
 -- Add the necessary extensions, imports and local definitions
 editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
@@ -41,8 +48,9 @@ continue op [] = []
 -- a.b.c ==> ((a ^. #b) ^. #c)
 editSelectors :: [Paren Lexeme] -> [Paren Lexeme]
 editSelectors (x:Item dot:Item field:rest)
-    | whitespace dot == "", lexeme dot == "."
-    , whitespace field == "", all isLower $ take 1 $ lexeme field
+    | noWhitespace x, noWhitespace (Item dot)
+    , lexeme dot == "."
+    , all isLower $ take 1 $ lexeme field
     = editSelectors $ paren [x, spc, Item dot{lexeme="Z.^."}, spc, Item field{lexeme='#':lexeme field}] : rest
 editSelectors xs = continue editSelectors xs
 
@@ -50,9 +58,10 @@ editSelectors xs = continue editSelectors xs
 -- a{b=c} ==> a & #b .~ c
 editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
 editUpdates (x:Paren brace (Item field:Item eq:inner) end:rest)
-    | whitespace brace == "", lexeme brace == "{"
+    | noWhitespace x
+    , lexeme brace == "{"
     , lexeme eq == "="
-    = paren (x:spc:gen "Z.&":spc:Item field{lexeme='#':lexeme field}:spc:Item eq{lexeme="Z..~"}:inner) : editUpdates rest
+    = paren (x:spc:gen "Z.&":spc:Item field{lexeme='#':lexeme field}:spc:Item eq{lexeme="Z..~"}:inner) : Item end{lexeme=""} : editUpdates rest
 editUpdates xs = continue editUpdates xs
 
 
