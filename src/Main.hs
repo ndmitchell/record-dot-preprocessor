@@ -35,10 +35,12 @@ runConvert original input output = do
 
 
 runTest :: [FilePath] -> IO ()
-runTest dirs = withTempDir $ \tdir ->
+runTest dirs = withTempDir $ \tdir -> do
+    createDirectory $ tdir </> "Control"
+    writeFile (tdir </> "Control/Lens.hs") "module Control.Lens(module X) where import Lens.Micro as X"
     forM_ dirs $ \dir -> do
         files <- ifM (doesDirectoryExist dir) (listFilesRecursive dir) (return [dir])
         forM_ files $ \file -> when (takeExtension file `elem` [".hs",".lhs"]) $ do
             let out = tdir </> takeFileName file
             runConvert file file out
-            system_ $ "runhaskell \"" ++ out ++ "\""
+            system_ $ "runhaskell -i" ++ tdir ++ " \"" ++ out ++ "\""
