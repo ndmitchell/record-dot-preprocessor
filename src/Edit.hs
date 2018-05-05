@@ -27,6 +27,9 @@ is x _ = False
 noWhitespace (Item x) = null $ whitespace x
 noWhitespace (Paren _ _ x) = null $ whitespace x
 
+isCtor (Item x) = any isUpper $ take 1 $ lexeme x
+isCtor _ = False
+
 
 -- Add the necessary extensions, imports and local definitions
 editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
@@ -59,6 +62,7 @@ editSelectors xs = continue editSelectors xs
 editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
 editUpdates (x:Paren brace (Item field:Item eq:inner) end:rest)
     | noWhitespace x
+    , not $ isCtor x
     , lexeme brace == "{"
     , lexeme eq == "="
     = paren (x:spc:gen "Z.&":spc:Item field{lexeme='#':lexeme field}:spc:Item eq{lexeme="Z..~"}:inner) : Item end{lexeme=""} : editUpdates rest
@@ -71,7 +75,7 @@ editAddInstances xs = xs ++ concatMap (\x -> [nl, gen x])
       "((r1 -> f r2) -> " ++ rtyp ++ " -> f " ++ rtyp ++ ") " ++
       "where fromLabel = Z.lens (\\x -> " ++ fname ++ " (x :: " ++ rtyp ++ ")) (\\c x -> c{" ++ fname ++ "=x} :: " ++ rtyp ++ ")"
     | Record rname rargs fields <- parseRecords $ map (fmap lexeme) xs
-    , let rtyp = unwords $ rname : rargs
+    , let rtyp = "(" ++ unwords (rname : rargs) ++ ")"
     , (fname, ftyp) <- fields
     ]
 
@@ -97,5 +101,5 @@ parseRecords = mapMaybe whole . drop 1 . split (`elem` [Item "data", Item "newty
         ctor _ = []
 
         fields ((x,[]):(y,z):rest) = fields $ (x++y,z):rest
-        fields ((names, _:typ):rest) = [(name, concat $ unparen typ) | Item name <- names] ++ fields rest
+        fields ((names, _:typ):rest) = [(name, unwords $ unparen typ) | Item name <- names] ++ fields rest
         fields _ = []
