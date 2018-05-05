@@ -18,13 +18,19 @@ gen = Item . gen_
 gen_ = Lexeme 0 0 ""
 paren xs = Paren (gen_ "(") xs (gen_ ")")
 
+is x (Item y) = lexeme y == x
+is x _ = False
+
 -- Add the necessary extensions, imports and local definitions
 editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
-editAddPreamble xs = concatMap (\x -> [gen x, nl]) (prefix ++ imports) ++ xs
+editAddPreamble xs
+    | (premodu, modu:xs) <- break (is "module") xs
+    , (prewhr, whr:xs) <- break (is "where") xs
+    = gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs
+    | otherwise = gen prefix : nl : gen imports : nl : xs
     where
-        prefix = ["{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"]
-        imports = ["import qualified GHC.OverloadedLabels as Z"
-                  ,"import qualified Control.Lens as Z"]
+        prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"
+        imports = "import qualified GHC.OverloadedLabels as Z; import qualified Control.Lens as Z"
 
 
 continue op (Paren a b c:xs) = Paren a (op b) c : op xs
