@@ -11,5 +11,3 @@ matrix:
 script:
 - set HLINT_ARGUMENTS=src
 - curl -sL https://raw.github.com/ndmitchell/neil/master/travis.sh | sh
-- cabal install microlens
-- record-dot-preprocessor --test examples
