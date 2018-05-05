@@ -2,6 +2,7 @@
 module Main(main) where
 
 import Lexer
+import Unlexer
 import Edit
 import Control.Monad.Extra
 import System.Directory.Extra
