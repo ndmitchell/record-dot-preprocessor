@@ -9,13 +9,14 @@ import Data.List.Extra
 
 
 edit :: [Paren Lexeme] -> [Paren Lexeme]
-edit = editAddPreamble . editAddInstances . editSelectors
+edit = editAddPreamble . editAddInstances . editSelectors . editUpdates
 
 
 nl = Item $ Lexeme 0 0 "\n" ""
 spc = Item $ Lexeme 0 0 " " ""
 gen = Item . gen_
 gen_ = Lexeme 0 0 ""
+paren xs = Paren (gen_ "(") xs (gen_ ")")
 
 -- Add the necessary extensions, imports and local definitions
 editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
@@ -26,14 +27,27 @@ editAddPreamble xs = concatMap (\x -> [gen x, nl]) (prefix ++ imports) ++ xs
                   ,"import qualified Control.Lens as Z"]
 
 
+continue op (Paren a b c:xs) = Paren a (op b) c : op xs
+continue op (x:xs) = x : op xs
+continue op [] = []
+
+
 -- a.b.c ==> ((a ^. #b) ^. #c)
 editSelectors :: [Paren Lexeme] -> [Paren Lexeme]
 editSelectors (x:Item dot:Item field:rest)
     | whitespace dot == "", lexeme dot == "."
     , whitespace field == "", all isLower $ take 1 $ lexeme field
-    = editSelectors $ Paren (gen_ "(") [x, spc, Item dot{lexeme="Z.^."}, spc, Item field{lexeme='#':lexeme field}] (gen_ ")") : rest
-editSelectors (x:xs) = x : editSelectors xs
-editSelectors [] = []
+    = editSelectors $ paren [x, spc, Item dot{lexeme="Z.^."}, spc, Item field{lexeme='#':lexeme field}] : rest
+editSelectors xs = continue editSelectors xs
+
+
+-- a{b=c} ==> a & #b .~ c
+editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
+editUpdates (x:Paren brace (Item field:Item eq:inner) end:rest)
+    | whitespace brace == "", lexeme brace == "{"
+    , lexeme eq == "="
+    = paren (x:spc:gen "Z.&":spc:Item field{lexeme='#':lexeme field}:spc:Item eq{lexeme="Z..~"}:inner) : editUpdates rest
+editUpdates xs = continue editUpdates xs
 
 
 editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
