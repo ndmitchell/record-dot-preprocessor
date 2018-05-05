@@ -25,9 +25,13 @@ The resulting program will require GHC 8.2 or above and the [`lens` library](htt
 
 * `e.b`, where `e` is an expression (not a constructor) and there are no whitespace on either side of the `.`, is translated to a record lookup. If you want to use the standard `.` function composition operator, insert a space. If you want to use a qualfied module name, then `e` will look like a constructor, so it won't clash.
 * `e{b = c}` is a record update. Provided the record was defined in a module where `record-dot-preprocessor` was used, the meaning will be equivalent to before. If you want to use a normal unchanged record update, insert a space before the `{`.
-* `e{b * c}`, where `*` is an arbitrary operator, is equivalent to `e{b = e.b * c}`. If you want to apply an arbitrary function as `c`, use the `&` operator.
+* `e{b * c}`, where `*` is an arbitrary operator, is equivalent to `e{b = e.b * c}`. If you want to apply an arbitrary function as `c`, use the `&` operator. Think `e.b *= c` in C-style languages.
 * `e.b.c{d.e * 1, f.g = 2}` also works and all variants along those lines.
 
 ## I don't believe in magic, what's the underlying science?
 
 On the way back from [ZuriHac 2017](https://2017.zurihac.info/) [Neil Mitchell](https://ndmitchell.com) and [Mathieu Boespflug](https://www.tweag.io/contact) were discussing lenses and the sad state of records in Haskell. We both agreed that overloaded labels should be defined such that they resolve to lenses. With the right instances, you could define `a ^. #foo` to get the `foo` field from the expression `a`. This preprocessor just turns `a.foo` into `a ^. #foo`, and generates the right instances. If you really want to see the magic under the hood simply run `record-dot-preprocessor yourfile.hs` and it will print out what it generates.
+
+## How does this magic compare to other magic?
+
+Records in Haskell are well known to be [pretty lousy](https://www.yesodweb.com/blog/2011/09/limitations-of-haskell). There are [many proposals](https://wiki.haskell.org/Extensible_record) that aim to make Haskell records more powerful using dark arts taken from type systems and category theory. This preprocessor aims for simplicity - combining existing elements into a coherent story. The aim is to do no worse than Java, not achieve perfection.
