@@ -26,7 +26,7 @@ The resulting program will require the [`lens` library](https://hackage.haskell.
 * `e.b`, where `e` is an expression (not a constructor) and there are no whitespace on either side of the `.`, is translated to a record lookup. If you want to use the standard `.` function composition operator, insert a space. If you want to use a qualfied module name, then `e` will look like a constructor, so it won't clash.
 * `e{b = c}` is a record update. Provided the record was defined in a module where `record-dot-preprocessor` was used, the meaning will be equivalent to before. If you want to use a normal unchanged record update, insert a space before the `{`.
 * `e{b * c}`, where `*` is an arbitrary operator, is equivalent to `e{b = e.b * c}`. If you want to apply an arbitrary function as `c`, use the `&` operator.
-* Record field must all be names, not operators.
+* `e.b.c{d.e * 1, f.g = 2}` also works and all variants along those lines.
 
 ## I don't believe in magic, what's the underlying science?
 
