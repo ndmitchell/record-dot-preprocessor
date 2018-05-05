@@ -4,23 +4,36 @@ module Edit(edit) where
 import Lexer
 import Paren
 import Data.Maybe
+import Data.Char
 import Data.List.Extra
 
 
 edit :: [Paren Lexeme] -> [Paren Lexeme]
-edit = editAddPreamble . editAddInstances
+edit = editAddPreamble . editAddInstances . editSelectors
 
 
 nl = Item $ Lexeme 0 0 "\n" ""
-gen = Item . Lexeme 0 0 ""
+spc = Item $ Lexeme 0 0 " " ""
+gen = Item . gen_
+gen_ = Lexeme 0 0 ""
 
 -- Add the necessary extensions, imports and local definitions
 editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
 editAddPreamble xs = concatMap (\x -> [gen x, nl]) (prefix ++ imports) ++ xs
     where
-        prefix = ["{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs #-}"]
+        prefix = ["{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"]
         imports = ["import qualified GHC.OverloadedLabels as Z"
                   ,"import qualified Control.Lens as Z"]
+
+
+-- a.b.c ==> ((a ^. #b) ^. #c)
+editSelectors :: [Paren Lexeme] -> [Paren Lexeme]
+editSelectors (x:Item dot:Item field:rest)
+    | whitespace dot == "", lexeme dot == "."
+    , whitespace field == "", all isLower $ take 1 $ lexeme field
+    = editSelectors $ Paren (gen_ "(") [x, spc, Item dot{lexeme="Z.^."}, spc, Item field{lexeme='#':lexeme field}] (gen_ ")") : rest
+editSelectors (x:xs) = x : editSelectors xs
+editSelectors [] = []
 
 
 editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
