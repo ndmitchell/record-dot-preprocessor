@@ -30,6 +30,7 @@ test1 = do
 
 -- can you deal with polymorphism
 data Foo a b = Foo {name :: (a, Maybe b), the_b :: b}
+    deriving Eq
 
 test2 :: IO ()
 test2 = do
@@ -38,6 +39,8 @@ test2 = do
     foo1.the_b.job === "b"
     foo2.name._1 === 19
 
+    foo2{the_b = 8}.the_b === 8
+    -- foo1.the_b{job & toUpper} == foo{the_b.job = "B"}
 
 
 main :: IO ()
