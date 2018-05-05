@@ -6,6 +6,7 @@ import Paren
 import Data.Maybe
 import Data.Char
 import Data.List.Extra
+import Control.Monad.Extra
 
 
 edit :: [Paren Lexeme] -> [Paren Lexeme]
@@ -30,6 +31,16 @@ noWhitespace (Paren _ _ x) = null $ whitespace x
 isCtor (Item x) = any isUpper $ take 1 $ lexeme x
 isCtor _ = False
 
+isField (Item x) = all (isLower ||^ (== '_')) $ take 1 $ lexeme x
+isField _ = False
+
+hashField (Item x)
+    | c1:cs <- lexeme x
+    , c1 == '_' && all isDigit cs -- tuple projection
+    = Item x{lexeme = "Z." ++ lexeme x}
+hashField (Item x) = Item x{lexeme = '#' : lexeme x}
+hashField x = x
+
 
 -- Add the necessary extensions, imports and local definitions
 editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
@@ -50,22 +61,23 @@ continue op [] = []
 
 -- a.b.c ==> ((a ^. #b) ^. #c)
 editSelectors :: [Paren Lexeme] -> [Paren Lexeme]
-editSelectors (x:Item dot:Item field:rest)
+editSelectors (x:Item dot:field:rest)
     | noWhitespace x, noWhitespace (Item dot)
     , lexeme dot == "."
-    , all isLower $ take 1 $ lexeme field
-    = editSelectors $ paren [x, spc, Item dot{lexeme="Z.^."}, spc, Item field{lexeme='#':lexeme field}] : rest
+    , isField field
+    = editSelectors $ paren [x, spc, Item dot{lexeme="Z.^."}, spc, hashField field] : rest
 editSelectors xs = continue editSelectors xs
 
 
 -- a{b=c} ==> a & #b .~ c
 editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
-editUpdates (x:Paren brace (Item field:Item eq:inner) end:rest)
+editUpdates (x:Paren brace (field:Item eq:inner) end:rest)
     | noWhitespace x
     , not $ isCtor x
+    , isField field
     , lexeme brace == "{"
     , lexeme eq == "="
-    = paren (x:spc:gen "Z.&":spc:Item field{lexeme='#':lexeme field}:spc:Item eq{lexeme="Z..~"}:inner) : Item end{lexeme=""} : editUpdates rest
+    = paren (x:spc:gen "Z.&":spc:hashField field:spc:Item eq{lexeme="Z..~"}:inner) : Item end{lexeme=""} : editUpdates rest
 editUpdates xs = continue editUpdates xs
 
 

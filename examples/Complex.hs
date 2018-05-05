@@ -34,7 +34,10 @@ data Foo a b = Foo {name :: (a, Maybe b), the_b :: b}
 test2 :: IO ()
 test2 = do
     let foo1 = Foo{name=(1, Nothing), the_b=Human "a" "b"}
+    let foo2 = Foo (19, Just 2) 2
     foo1.the_b.job === "b"
+    foo2.name._1 === 19
+
 
 
 main :: IO ()
