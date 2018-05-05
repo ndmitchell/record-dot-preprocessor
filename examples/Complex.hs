@@ -40,7 +40,8 @@ test2 = do
     foo2.name._1 === 19
 
     foo2{the_b = 8}.the_b === 8
-    -- foo1.the_b{job & toUpper} == foo{the_b.job = "B"}
+    foo1{the_b.job = "c"} === foo1.the_b{job = "c"}
+    foo1.the_b{job ++ "b"} === foo1{the_b.job = "bb"}
 
 
 main :: IO ()

@@ -6,6 +6,7 @@ import Paren
 import Data.Maybe
 import Data.Char
 import Data.List.Extra
+import Data.Tuple.Extra
 import Control.Monad.Extra
 
 
@@ -69,16 +70,43 @@ editSelectors (x:dot:field:rest)
 editSelectors xs = continue editSelectors xs
 
 
--- a{b=c} ==> a & #b .~ c
+type Field = Paren Lexeme -- passes isField, has had hashField applied
+data Update = Update (Paren Lexeme) [Field] [([Field], Maybe (Paren Lexeme), Paren Lexeme)]
+    -- expression, fields, then (fields, operator, body)
+
+renderUpdate :: Update -> [Paren Lexeme]
+renderUpdate (Update e fields upd) =
+    e : spc : gen "Z.&" : spc :
+    concat [[x, spc, gen "Z.%~", spc] | x <- fields] ++
+    paren (intercalate [spc, gen ".", spc] $ map (pure . paren)
+        [ concat [ [x, spc, gen "Z.%~", spc] | x <- fields] ++ [paren [fromMaybe (gen "const") op, body]]
+        | (fields, op, body) <- reverse upd]
+    ) : []
+
+
+-- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
 editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
-editUpdates (x:Paren brace (field:Item eq:inner) end:rest)
-    | noWhitespace x
-    , not $ isCtor x
-    , isField field
+editUpdates (e:xs)
+    | noWhitespace e, not $ isCtor e
+    , (fields, xs) <- spanFields xs
+    , Paren brace inner end:xs <- xs
     , lexeme brace == "{"
-    , lexeme eq == "="
+    , Just updates <- mapM f $ split (is ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
-    = paren (x:spc:gen "Z.&":spc:hashField field:spc:Item eq{lexeme="Z..~"}:inner) : end2 ++ editUpdates rest
+    = paren (renderUpdate (Update e fields updates)) : end2 ++ editUpdates xs
+    where
+        spanFields (x:y:xs)
+            | noWhitespace x, is "." x
+            , isField y
+            = first (hashField y:) $ spanFields xs
+        spanFields xs = ([], xs)
+
+        f (field1:xs)
+            | isField field1
+            , (fields, xs) <- spanFields xs
+            , op:xs <- xs
+            = Just (hashField field1:fields, if is "=" op then Nothing else Just op, paren xs)
+        f xs = Nothing
 editUpdates xs = continue editUpdates xs
 
 
