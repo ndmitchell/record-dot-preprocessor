@@ -93,7 +93,7 @@ editUpdates (e:xs)
     , lexeme brace == "{"
     , Just updates <- mapM f $ split (is ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
-    = paren (renderUpdate (Update e fields updates)) : end2 ++ editUpdates xs
+    = paren (renderUpdate (Update (paren $ editUpdates [e]) fields updates)) : end2 ++ editUpdates xs
     where
         spanFields (x:y:xs)
             | noWhitespace x, is "." x
