@@ -1,0 +1,3 @@
+Changelog for record-dot-preprocessor
+
+    Initial version

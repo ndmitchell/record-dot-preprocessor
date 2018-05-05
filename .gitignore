@@ -1,0 +1,4 @@
+/dist/
+/.hpc/
+.stack-work/
+stack.yaml

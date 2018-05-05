@@ -1,0 +1,14 @@
+sudo: required
+
+matrix:
+  include:
+  - env: GHCVER=7.10.3
+  - env: GHCVER=8.0.2
+  - env: GHCVER=8.2.2
+  - env: GHCVER=8.4.1
+  - env: GHCVER=head
+
+script:
+- set HLINT_ARGUMENTS=src
+- curl -sL https://raw.github.com/ndmitchell/neil/master/travis.sh | sh
+- record-dot-preprocessor --test examples

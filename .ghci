@@ -1,0 +1,4 @@
+:set -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
+:set -isrc
+:load src\Main.hs
+:def test const $ return ":main --test examples"
