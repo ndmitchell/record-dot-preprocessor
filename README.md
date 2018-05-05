@@ -19,7 +19,7 @@ Here we declare two records both with `name` as a field, then write `c.name` and
 
 First install `record-dot-preprocessor` with either `stack install record-dot-preprocessor` or `cabal update && cabal install record-dot-preprocessor`. Then add `{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}` to the top of the file. Suddenly your records will work. You must make sure that the preprocessor is applied both to the file where your records are defined, and where the record syntax is used.
 
-The resulting program will require the [`lens` library](https://hackage.haskell.org/package/lens), or a module called `Control.Lens` exporting the contents of [`Lens.Micro` from `microlens`](https://hackage.haskell.org/package/microlens/docs/Lens-Micro.html) (which has significantly less dependencies).
+The resulting program will require GHC 8.2 or above and the [`lens` library](https://hackage.haskell.org/package/lens), or a module called `Control.Lens` exporting the contents of [`Lens.Micro` from `microlens`](https://hackage.haskell.org/package/microlens/docs/Lens-Micro.html) (which has significantly less dependencies).
 
 ## What magic is available, precisely?
 
