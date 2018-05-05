@@ -38,8 +38,8 @@ editSelectors [] = []
 
 editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
 editAddInstances xs = xs ++ concatMap (\x -> [nl, gen x])
-    [ "instance (Functor f, r ~ " ++ ftyp ++ ") => Z.IsLabel \"" ++ fname ++ "\" " ++
-      "((r -> f r) -> " ++ rtyp ++ " -> f " ++ rtyp ++ ") " ++
+    [ "instance (Functor f, r1 ~ " ++ ftyp ++ ", r1 ~ r2) => Z.IsLabel \"" ++ fname ++ "\" " ++
+      "((r1 -> f r2) -> " ++ rtyp ++ " -> f " ++ rtyp ++ ") " ++
       "where fromLabel = Z.lens (\\x -> " ++ fname ++ " (x :: " ++ rtyp ++ ")) (\\c x -> c{" ++ fname ++ "=x} :: " ++ rtyp ++ ")"
     | Record rname rargs fields <- parseRecords $ map (fmap lexeme) xs
     , let rtyp = unwords $ rname : rargs
