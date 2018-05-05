@@ -61,11 +61,11 @@ continue op [] = []
 
 -- a.b.c ==> ((a ^. #b) ^. #c)
 editSelectors :: [Paren Lexeme] -> [Paren Lexeme]
-editSelectors (x:Item dot:field:rest)
-    | noWhitespace x, noWhitespace (Item dot)
-    , lexeme dot == "."
+editSelectors (x:dot:field:rest)
+    | noWhitespace x, noWhitespace dot
+    , is "." dot
     , isField field
-    = editSelectors $ paren [x, spc, Item dot{lexeme="Z.^."}, spc, hashField field] : rest
+    = editSelectors $ paren (editSelectors [x] ++ [spc, gen "Z.^.", spc, hashField field]) : rest
 editSelectors xs = continue editSelectors xs
 
 
