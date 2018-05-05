@@ -39,11 +39,19 @@ test2 = do
     foo1.the_b.job === "b"
     foo2.name._1 === 19
 
+    -- check complex updates
     foo2{the_b = 8}.the_b === 8
     foo1{the_b.job = "c"} === foo1.the_b{job = "c"}
     foo1.the_b{job ++ "b"} === foo1{the_b.job = "bb"}
     foo1.the_b{job ++ "b", name = "q"} === foo1{the_b = Human "q" "bb"}
+
+    -- check updates are ordered correctly
     foo1{the_b = Human "x" "y", the_b.job="z"} === foo1{the_b = Human "x" "z"}
+
+    -- check for nesting
+    (foo1.the_b).job === "b"
+    foo1{the_b = foo1.the_b{job="r"}}.the_b.job === "r"
+    (foo1.the_b{job="n"}){the_b.name="m"}.the_b === Human "m" "n"
 
 
 main :: IO ()
