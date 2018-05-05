@@ -43,6 +43,7 @@ test2 = do
     foo1{the_b.job = "c"} === foo1.the_b{job = "c"}
     foo1.the_b{job ++ "b"} === foo1{the_b.job = "bb"}
     foo1.the_b{job ++ "b", name = "q"} === foo1{the_b = Human "q" "bb"}
+    foo1{the_b = Human "x" "y", the_b.job="z"} === foo1{the_b = Human "x" "z"}
 
 
 main :: IO ()
