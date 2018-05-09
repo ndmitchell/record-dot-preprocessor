@@ -45,12 +45,16 @@ hashField x = x
 
 -- Add the necessary extensions, imports and local definitions
 editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
-editAddPreamble xs
-    | (premodu, modu:xs) <- break (is "module") xs
+editAddPreamble o@xs
+    | (premodu, modu:modname@xs) <- break (is "module") xs
     , (prewhr, whr:xs) <- break (is "where") xs
-    = gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs ++ [nl, gen trailing, nl]
+    = if isControlLens modname then o else gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs ++ [nl, gen trailing, nl]
     | otherwise = gen prefix : nl : gen imports : nl : xs ++ [nl, gen trailing, nl]
     where
+        -- don't want to create a circular reference if they fake Control.Lens with microlens
+        isControlLens (a:b:c:_) = is "Control" a && is "." b && is "Lens" c
+        isControlLens _ = False
+
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"
         imports = "import qualified GHC.OverloadedLabels as Z; import qualified Control.Lens as Z"
         trailing = "_preprocessor_unused :: (label ~ \"_unused\", Z.IsLabel label a) => a -> (); _preprocessor_unused x = x `seq` (undefined Z.^. undefined) `seq` ()"
