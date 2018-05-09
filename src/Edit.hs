@@ -48,11 +48,12 @@ editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
 editAddPreamble xs
     | (premodu, modu:xs) <- break (is "module") xs
     , (prewhr, whr:xs) <- break (is "where") xs
-    = gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs
-    | otherwise = gen prefix : nl : gen imports : nl : xs
+    = gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs ++ [nl, gen trailing, nl]
+    | otherwise = gen prefix : nl : gen imports : nl : xs ++ [nl, gen trailing, nl]
     where
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"
         imports = "import qualified GHC.OverloadedLabels as Z; import qualified Control.Lens as Z"
+        trailing = "_preprocessor_unused :: (label ~ \"_unused\", Z.IsLabel label a) => a -> (); _preprocessor_unused x = x `seq` (undefined Z.^. undefined) `seq` ()"
 
 
 continue op (Paren a b c:xs) = Paren a (op b) c : op xs
