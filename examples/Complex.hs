@@ -53,6 +53,9 @@ test2 = do
     foo1{the_b = foo1.the_b{job="r"}}.the_b.job === "r"
     (foo1.the_b{job="n"}){the_b.name="m"}.the_b === Human "m" "n"
 
+    -- check we don't go into constructors
+    Control.Exception.evaluate ()
+
 
 main :: IO ()
 main = test1 >> test2

@@ -1,4 +1,5 @@
 Changelog for record-dot-preprocessor
 
+    Be compatible with qualified imports
 0.1, released 2018-05-06
     Initial version

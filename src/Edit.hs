@@ -66,6 +66,7 @@ editSelectors (x:dot:field:rest)
     | noWhitespace x, noWhitespace dot
     , is "." dot
     , isField field
+    , not $ isCtor x
     = editSelectors $ paren (editSelectors [x] ++ [spc, gen "Z.^.", spc, hashField field]) : rest
 editSelectors xs = continue editSelectors xs
 
