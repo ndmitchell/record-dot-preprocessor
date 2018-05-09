@@ -32,6 +32,9 @@ test1 = do
 data Foo a b = Foo {name :: (a, Maybe b), the_b :: b}
     deriving Eq
 
+data Person = Person {age :: Int, address :: String}
+    deriving Eq
+
 test2 :: IO ()
 test2 = do
     let foo1 = Foo{name=(1, Nothing), the_b=Human "a" "b"}
@@ -55,6 +58,9 @@ test2 = do
 
     -- check we don't go into constructors
     Control.Exception.evaluate ()
+
+    let person = Person 10 "Home"
+    (person{age - 3}){age * 2} === person{age = 14}
 
 
 main :: IO ()

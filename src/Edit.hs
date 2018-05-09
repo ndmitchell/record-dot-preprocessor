@@ -81,9 +81,13 @@ renderUpdate (Update e fields upd) =
     e : spc : gen "Z.&" : spc :
     concat [[x, spc, gen "Z.%~", spc] | x <- fields] ++
     [paren (intercalate [spc, gen ".", spc] $ map (pure . paren)
-        [ concat [ [x, spc, gen "Z.%~", spc] | x <- fields] ++ [paren [fromMaybe (gen "const") op, body]]
+        [ concat [ [x, spc, gen "Z.%~", spc] | x <- fields] ++ [paren [operator op, body]]
         | (fields, op, body) <- reverse upd]
     )]
+    where
+        operator Nothing = gen "const"
+        operator (Just x) | is "-" x = gen "subtract"
+        operator (Just x) = x
 
 
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
