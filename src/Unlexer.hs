@@ -6,4 +6,6 @@ module Unlexer(unlexer) where
 import Lexer
 
 unlexer :: FilePath -> [Lexeme] -> String
-unlexer _ xs = concat [lexeme ++ whitespace | Lexeme{..} <- xs]
+unlexer src xs =
+    "{-# LINE 1 " ++ show src ++ " #-}\n" ++
+    concat [lexeme ++ whitespace | Lexeme{..} <- xs]
