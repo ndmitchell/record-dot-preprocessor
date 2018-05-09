@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.1.1, released 2018-05-09
     Handle - as an update operator
     Be compatible with qualified imports
 0.1, released 2018-05-06
