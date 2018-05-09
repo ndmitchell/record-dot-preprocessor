@@ -144,5 +144,5 @@ parseRecords = mapMaybe whole . drop 1 . split (`elem` [Item "data", Item "newty
         ctor _ = []
 
         fields ((x,[]):(y,z):rest) = fields $ (x++y,z):rest
-        fields ((names, _:typ):rest) = [(name, unwords $ unparen typ) | Item name <- names] ++ fields rest
+        fields ((names, _:typ):rest) = [(name, trim $ dropWhile (== '!') $ unwords $ unparen typ) | Item name <- names] ++ fields rest
         fields _ = []
