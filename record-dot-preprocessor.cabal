@@ -18,7 +18,7 @@ bug-reports:        https://github.com/ndmitchell/record-dot-preprocessor/issues
 extra-doc-files:
     README.md
     CHANGES.txt
-tested-with:        GHC==8.4.2, GHC==8.2.2
+tested-with:        GHC==8.4.3, GHC==8.2.2
 
 source-repository head
     type:     git
