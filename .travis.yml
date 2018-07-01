@@ -1,10 +1,10 @@
 sudo: required
 
-matrix:
-  include:
-  - env: GHCVER=8.2.2
-  - env: GHCVER=8.4.3
-  - env: GHCVER=head
+env:
+- GHCVER=8.2.2
+- GHCVER=8.4.3
+- GHCVER=8.6.1
+- GHCVER=head
 
 script:
 - export HLINT_ARGUMENTS=src
