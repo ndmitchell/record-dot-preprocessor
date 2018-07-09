@@ -1,0 +1,1 @@
+-c "ghc --interactive Example.hs -package=ghc" --test=main
