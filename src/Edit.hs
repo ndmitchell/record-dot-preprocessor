@@ -131,6 +131,10 @@ editAddInstances xs = xs ++ concatMap (\x -> [nl, gen x])
     , let context = ["Functor f", "t1 ~ " ++ ftyp, "t2 ~ t1", "t3 ~ " ++ rtyp]
     ]
 
+unwordsDot (x:".":y:zs) = unwordsDot $ (x ++ "." ++ y) : zs
+unwordsDot (x:y:zs) = unwordsDot $ (x ++ " " ++ y) : zs
+unwordsDot [x] = x
+unwordsDot [] = ""
 
 
 data Record = Record String [String] [(String, String)] -- TypeName TypeArgs [(FieldName, FieldType)]
@@ -153,5 +157,5 @@ parseRecords = mapMaybe whole . drop 1 . split (`elem` [Item "data", Item "newty
         ctor _ = []
 
         fields ((x,[]):(y,z):rest) = fields $ (x++y,z):rest
-        fields ((names, _:typ):rest) = [(name, trim $ dropWhile (== '!') $ unwords $ unparen typ) | Item name <- names] ++ fields rest
+        fields ((names, _:typ):rest) = [(name, trim $ dropWhile (== '!') $ unwordsDot $ unparen typ) | Item name <- names] ++ fields rest
         fields _ = []

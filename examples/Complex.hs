@@ -18,7 +18,7 @@ a === b = if a == b then return () else fail "Mismatch"
 
 
 -- can you deal with multiple alternatives
-data Animal = Human {name :: !String, job :: String}
+data Animal = Human {name :: !String, job :: Prelude.String}
             | Nonhuman {name :: String}
               deriving (Show,Eq)
 
