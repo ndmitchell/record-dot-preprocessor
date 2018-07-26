@@ -15,7 +15,7 @@ import           SrcLoc
 
 noL = L noSrcSpan
 mod_ghc_records = GHC.mkModuleName "GHC.Records"
-var_getFields = GHC.mkRdrQual mod_ghc_records $ GHC.mkVarOcc "getField"
+var_getField = GHC.mkRdrQual mod_ghc_records $ GHC.mkVarOcc "getField"
 var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
 
@@ -58,7 +58,7 @@ onExp (L o (OpApp _ lhs mid rhs))
     , (lhsWrap, lhs) <- unwrapLHS $ onExp lhs
     , (rhsWrap, rhs) <- unwrapRHS rhs
     , L _ (HsVar _ (L _ rhs)) <- rhs, not $ GHC.isQual rhs
-    , let getField = noL $ HsVar NoExt $ noL var_getFields
+    , let getField = noL $ HsVar NoExt $ noL var_getField
     , let symbol = HsTyLit NoExt $ HsStrTy GHC.NoSourceText $ GHC.occNameFS $ GHC.rdrNameOcc rhs
     = rhsWrap $ lhsWrap $ noL $ HsPar NoExt $ L o $ HsApp NoExt (noL (HsAppType (HsWC NoExt (noL symbol)) getField)) lhs
 onExp x = descend onExp x
