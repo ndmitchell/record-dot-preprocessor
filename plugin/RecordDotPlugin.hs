@@ -59,8 +59,8 @@ onExp (L o (OpApp _ lhs mid rhs))
     , (rhsWrap, rhs) <- unwrapRHS rhs
     , L _ (HsVar _ (L _ rhs)) <- rhs, not $ GHC.isQual rhs
     , let getField = noL $ HsVar NoExt $ noL var_getField
-    , let symbol = HsTyLit NoExt $ HsStrTy GHC.NoSourceText $ GHC.occNameFS $ GHC.rdrNameOcc rhs
-    = rhsWrap $ lhsWrap $ noL $ HsPar NoExt $ L o $ HsApp NoExt (noL (HsAppType (HsWC NoExt (noL symbol)) getField)) lhs
+    , let symbol = noL $ HsTyLit NoExt $ HsStrTy GHC.NoSourceText $ GHC.occNameFS $ GHC.rdrNameOcc rhs
+    = rhsWrap $ lhsWrap $ noL $ HsPar NoExt $ L o $ HsApp NoExt (noL (HsAppType (HsWC NoExt symbol) getField)) lhs
 onExp x = descend onExp x
 
 
