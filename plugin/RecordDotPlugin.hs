@@ -39,10 +39,10 @@ debug :: MonadIO m => String -> m ()
 debug = when False . liftIO . putStrLn
 
 tweak :: GHC.Located (HsModule GhcPs) -> GHC.Located (HsModule GhcPs)
-tweak = descendBi onExp . transformBi addImports
+tweak = descendBi onExp . descendBi onModule
 
-addImports :: HsModule GhcPs -> HsModule GhcPs
-addImports x = x{hsmodImports = magicImport : hsmodImports x}
+onModule :: HsModule GhcPs -> HsModule GhcPs
+onModule x = x{hsmodImports = magicImport : hsmodImports x}
     where magicImport = noL $ ImportDecl NoExt GHC.NoSourceText (noL mod_ghc_records) Nothing False False True False Nothing Nothing
 
 onExp :: LHsExpr GhcPs -> LHsExpr GhcPs
