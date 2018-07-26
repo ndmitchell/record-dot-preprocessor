@@ -55,23 +55,27 @@ onExp :: LHsExpr GhcPs -> LHsExpr GhcPs
 onExp (L o (OpApp _ lhs mid rhs))
     | adjacent lhs mid, adjacent mid rhs
     , L _ (HsVar _ (L _ mid)) <- mid, mid == var_dot
-    , (lhsWrap, lhs) <- unwrapLHS $ onExp lhs
-    , (rhsWrap, rhs) <- unwrapRHS rhs
+    , (lhsOp, lhs) <- getOpRHS $ onExp lhs
+    , (lhsApp, lhs) <- getAppRHS lhs
+    , (rhsApp, rhs) <- getAppLHS rhs
     , L _ (HsVar _ (L _ rhs)) <- rhs, not $ GHC.isQual rhs
     , let getField = noL $ HsVar NoExt $ noL var_getField
     , let symbol = noL $ HsTyLit NoExt $ HsStrTy GHC.NoSourceText $ GHC.occNameFS $ GHC.rdrNameOcc rhs
-    = rhsWrap $ lhsWrap $ noL $ HsPar NoExt $ L o $ HsApp NoExt (noL (HsAppType (HsWC NoExt symbol) getField)) lhs
+    = lhsOp $ rhsApp $ lhsApp $ noL $ HsPar NoExt $ L o $ HsApp NoExt (noL (HsAppType (HsWC NoExt symbol) getField)) lhs
 onExp x = descend onExp x
 
 
-unwrapLHS :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
-unwrapLHS (L l (OpApp a b c d)) = first (\x -> L l . OpApp a b c . x) $ unwrapLHS d
-unwrapLHS (L l (HsApp a b c)) = first (\x -> L l . HsApp a b . x) $ unwrapLHS c
-unwrapLHS x = (id, x)
+getAppRHS :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
+getAppRHS (L l (HsApp p x y)) = (L l . HsApp p x, y)
+getAppRHS x = (id, x)
 
-unwrapRHS :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
-unwrapRHS (L l (HsApp a b c)) = first (\x -> L l . (\b -> HsApp a b c) . x) $ unwrapRHS b
-unwrapRHS x = (id, x)
+getAppLHS :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
+getAppLHS (L l (HsApp p x y)) = first (\c -> L l . (\x -> HsApp p x y) . c) $ getAppLHS x
+getAppLHS x = (id, x)
+
+getOpRHS :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
+getOpRHS (L l (OpApp p x y z)) = (L l . OpApp p x y, z)
+getOpRHS x = (id, x)
 
 
 adjacent :: Located a -> Located b -> Bool

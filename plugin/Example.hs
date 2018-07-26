@@ -12,17 +12,29 @@ display c = c.name ++ " is run by " ++ c.owner.name
 quirks c x = unwords
     [f c.name x
     ,f c.owner.name x
-    ,g $ (1::Int) @@ c.name @@ True
-    ,g $ 1 @@ c.owner.name @@ True
+    ,gL $ 1 @+ c.name @+ True
+    ,gL $ 1 @+ c.owner.name @+ True
+    ,gL $ 1 @+ f c.name x @+ True
+    ,gL $ 1 @+ f c.owner.name x @+ True
+    ,gR $ 1 +@ c.name +@ True
+    ,gR $ 1 +@ c.owner.name +@ True
+    ,gR $ 1 +@ f c.name x +@ True
+    ,gR $ 1 +@ f c.owner.name x +@ True
     ]
 
 f :: String -> Bool -> String
 f x _ = x
 
-(@@) = (,)
+infixl 9 @+
+infixr 9 +@
+(@+) = (,)
+(+@) = (,)
 
-g :: ((Int, String), Bool) -> String
-g ((_,x),_) = x
+gL :: ((Int, String), Bool) -> String
+gL ((_,x),_) = x
+
+gR :: (Int, (String, Bool)) -> String
+gR (_,(x,_)) = x
 
 main = do
     putStrLn $ display c
