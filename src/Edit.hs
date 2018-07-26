@@ -48,8 +48,8 @@ editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
 editAddPreamble o@xs
     | (premodu, modu:modname@xs) <- break (is "module") xs
     , (prewhr, whr:xs) <- break (is "where") xs
-    = if isControlLens modname then o else gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs ++ [nl, gen trailing, nl]
-    | otherwise = gen prefix : nl : gen imports : nl : xs ++ [nl, gen trailing, nl]
+    = if isControlLens modname then o else gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs ++ [nl, gen $ trailing modname, nl]
+    | otherwise = gen prefix : nl : gen imports : nl : xs ++ [nl, gen $ trailing [], nl]
     where
         -- don't want to create a circular reference if they fake Control.Lens with microlens
         isControlLens (a:b:c:_) = is "Control" a && is "." b && is "Lens" c
@@ -57,7 +57,11 @@ editAddPreamble o@xs
 
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"
         imports = "import qualified GHC.OverloadedLabels as Z; import qualified Control.Lens as Z"
-        trailing = "_preprocessor_unused :: (label ~ \"_unused\", Z.IsLabel label a) => a -> a; _preprocessor_unused x = let _undef = _undef; _use _ = x in _use (_undef Z.^. _undef)"
+        -- if you import two things that have preprocessor_unused, and export them as modules, you don't want them to clash
+        trailing modName = "_preprocessor_unused_" ++ uniq ++ " :: (label ~ \"_unused\", Z.IsLabel label a) => a -> a;" ++
+                           "_preprocessor_unused_" ++ uniq ++ " x = let _undef = _undef; _use _ = x in _use (_undef Z.^. _undef)"
+            where uniq = map (\x -> if isAlphaNum x then x else '_') $ concat $ take 19 $ takeWhile modPart $ map lexeme $ unparen modName
+        modPart x = x == "." || all isUpper (take 1 x)
 
 
 continue op (Paren a b c:xs) = Paren a (op b) c : op xs

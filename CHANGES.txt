@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    Give a unique name to each _preprocessor_unused
 0.1.2, released 2018-07-26
     Make qualified types in records work
     Add LINE droppings to get approximate line numbers correct
