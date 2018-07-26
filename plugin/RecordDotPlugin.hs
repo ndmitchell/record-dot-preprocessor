@@ -45,23 +45,33 @@ onModule :: HsModule GhcPs -> HsModule GhcPs
 onModule x = x{hsmodImports = magicImport : hsmodImports x}
     where magicImport = noL $ ImportDecl NoExt GHC.NoSourceText (noL mod_ghc_records) Nothing False False True False Nothing Nothing
 
+-- At this point infix expressions have not had associativity/fixity applied, so they are bracketed
+-- a + b + c ==> (a + b) + c
+-- Therefore we need to deal with, in general:
+-- x.y, where
+-- x := a | a b | a.b | a + b
+-- y := a | a b
 onExp :: LHsExpr GhcPs -> LHsExpr GhcPs
 onExp (L o (OpApp _ lhs mid rhs))
     | adjacent lhs mid, adjacent mid rhs
-    , L _ (HsVar _ (L _ mid)) <- mid
-    , mid == var_dot
-    , L _ (HsVar _ (L _ rhs)) <- rhs
-    , not $ GHC.isQual rhs
-    , (lhs1, lhs2) <- delve $ onExp lhs
+    , L _ (HsVar _ (L _ mid)) <- mid, mid == var_dot
+    , (lhsWrap, lhs) <- unwrapLHS $ onExp lhs
+    , (rhsWrap, rhs) <- unwrapRHS rhs
+    , L _ (HsVar _ (L _ rhs)) <- rhs, not $ GHC.isQual rhs
     , let getField = noL $ HsVar NoExt $ noL var_getFields
     , let symbol = HsTyLit NoExt $ HsStrTy GHC.NoSourceText $ GHC.occNameFS $ GHC.rdrNameOcc rhs
-    = lhs1 $ noL $ HsPar NoExt $ L o $ HsApp NoExt (noL (HsAppType (HsWC NoExt (noL symbol)) getField)) lhs2
+    = rhsWrap $ lhsWrap $ noL $ HsPar NoExt $ L o $ HsApp NoExt (noL (HsAppType (HsWC NoExt (noL symbol)) getField)) lhs
 onExp x = descend onExp x
 
 
-delve :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
-delve (L l (OpApp a b c d)) = first (\x -> L l . OpApp a b c . x) $ delve d
-delve x = (id, x)
+unwrapLHS :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
+unwrapLHS (L l (OpApp a b c d)) = first (\x -> L l . OpApp a b c . x) $ unwrapLHS d
+unwrapLHS (L l (HsApp a b c)) = first (\x -> L l . HsApp a b . x) $ unwrapLHS c
+unwrapLHS x = (id, x)
+
+unwrapRHS :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
+unwrapRHS (L l (HsApp a b c)) = first (\x -> L l . (\b -> HsApp a b c) . x) $ unwrapRHS b
+unwrapRHS x = (id, x)
 
 
 adjacent :: Located a -> Located b -> Bool
