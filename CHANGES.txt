@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.1.2, released 2018-07-26
     Make qualified types in records work
     Add LINE droppings to get approximate line numbers correct
     Don't depend on anything not imported from Control.Lens
