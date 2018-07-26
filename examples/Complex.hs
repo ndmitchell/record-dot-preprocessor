@@ -64,4 +64,4 @@ test2 = do
 
 
 main :: IO ()
-main = test1 >> test2
+main = test1 >> test2 >> putStrLn "Complex example worked"
