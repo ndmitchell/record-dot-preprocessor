@@ -57,7 +57,7 @@ editAddPreamble o@xs
 
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, MultiParamTypeClasses, GADTs, OverloadedLabels #-}"
         imports = "import qualified GHC.OverloadedLabels as Z; import qualified Control.Lens as Z"
-        trailing = "_preprocessor_unused :: (label ~ \"_unused\", Z.IsLabel label a) => a -> (); _preprocessor_unused x = x `seq` (undefined Z.^. undefined) `seq` ()"
+        trailing = "_preprocessor_unused :: (label ~ \"_unused\", Z.IsLabel label a) => a -> a; _preprocessor_unused x = let _undef = _undef; _use _ = x in _use (_undef Z.^. _undef)"
 
 
 continue op (Paren a b c:xs) = Paren a (op b) c : op xs
