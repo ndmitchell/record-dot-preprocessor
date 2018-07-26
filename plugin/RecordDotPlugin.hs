@@ -13,7 +13,7 @@ import           HsSyn
 import           SrcLoc
 
 
-noL = L noSrcSpan
+noL = noLoc
 mod_ghc_records = GHC.mkModuleName "GHC.Records"
 var_getField = GHC.mkRdrQual mod_ghc_records $ GHC.mkVarOcc "getField"
 var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
