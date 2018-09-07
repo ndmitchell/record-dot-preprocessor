@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.1.4, released 2018-09-07
     Licensed under BSD-3-Clause OR Apache-2.0
 0.1.3, released 2018-07-26
     Give a unique name to each _preprocessor_unused
