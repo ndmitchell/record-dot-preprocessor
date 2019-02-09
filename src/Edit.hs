@@ -59,7 +59,7 @@ editAddPreamble o@xs
         imports = "import qualified GHC.OverloadedLabels as Z; import qualified Control.Lens as Z"
         -- if you import two things that have preprocessor_unused, and export them as modules, you don't want them to clash
         trailing modName = "_preprocessor_unused_" ++ uniq ++ " :: (label ~ \"_unused\", Z.IsLabel label a) => a -> a;" ++
-                           "_preprocessor_unused_" ++ uniq ++ " x = let _undef = _undef; _use _ = x in _use (_undef Z.^. _undef)"
+                           "_preprocessor_unused_" ++ uniq ++ " _x = let _undef = _undef; _use _ = _x in _use (_undef Z.^. _undef)"
             where uniq = map (\x -> if isAlphaNum x then x else '_') $ concat $ take 19 $ takeWhile modPart $ map lexeme $ unparen modName
         modPart x = x == "." || all isUpper (take 1 x)
 
@@ -128,7 +128,7 @@ editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
 editAddInstances xs = xs ++ concatMap (\x -> [nl, gen x])
     [ "instance (" ++ intercalate ", " context ++ ") => Z.IsLabel \"" ++ fname ++ "\" " ++
       "((t1 -> f t2) -> " ++ rtyp ++ " -> f t3) " ++
-      "where fromLabel = Z.lens (\\x -> " ++ fname ++ " (x :: " ++ rtyp ++ ")) (\\c x -> c{" ++ fname ++ "=x} :: " ++ rtyp ++ ")"
+      "where fromLabel = Z.lens (" ++ fname ++ " :: (" ++ rtyp ++ ") -> (" ++ ftyp ++ ")) (\\_c _x -> _c{" ++ fname ++ "=_x} :: " ++ rtyp ++ ")"
     | Record rname rargs fields <- parseRecords $ map (fmap lexeme) xs
     , let rtyp = "(" ++ unwords (rname : rargs) ++ ")"
     , (fname, ftyp) <- fields

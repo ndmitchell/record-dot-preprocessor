@@ -7,8 +7,8 @@ module Main(main) where
 import Control.Exception
 
 fails :: a -> IO ()
-fails x = do
-    res <- try $ evaluate x
+fails val = do
+    res <- try $ evaluate val
     case res of
         Left (_ :: SomeException) -> return ()
         Right _ -> fail "Expected an exception"
@@ -29,7 +29,7 @@ test1 = do
     fails (Nonhuman "x").job
 
 -- can you deal with polymorphism
-data Foo a b = Foo {name :: (a, Maybe b), the_b :: b}
+data Foo a b = Foo {name :: (a, Maybe b), the_b :: b, x :: Int}
     deriving Eq
 
 data Person = Person {age :: Int, address :: String}
@@ -37,10 +37,11 @@ data Person = Person {age :: Int, address :: String}
 
 test2 :: IO ()
 test2 = do
-    let foo1 = Foo{name=(1, Nothing), the_b=Human "a" "b"}
-    let foo2 = Foo (19, Just 2) 2
+    let foo1 = Foo{name=(1, Nothing), the_b=Human "a" "b", x=1}
+    let foo2 = Foo (19, Just 2) 2 1
     foo1.the_b.job === "b"
     foo2.name._1 === 19
+    foo2.x === 1
 
     -- check complex updates
     foo2{the_b = 8}.the_b === 8
