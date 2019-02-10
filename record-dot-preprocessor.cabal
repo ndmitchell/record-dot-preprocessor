@@ -30,7 +30,7 @@ executable record-dot-preprocessor
     hs-source-dirs:     src
     main-is:            Main.hs
     build-depends:
-        base >= 4.6 && < 5,
+        base >= 4.8 && < 5,
         filepath,
         extra
     other-modules:
