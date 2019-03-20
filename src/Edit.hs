@@ -102,22 +102,28 @@ renderUpdate (Update e fields upd) =
 editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
 editUpdates (e:xs)
     | noWhitespace e, not $ isCtor e
-    , (fields, xs) <- spanFields xs
+    , (fields, xs) <- spanFields1 xs
     , Paren brace inner end:xs <- xs
     , lexeme brace == "{"
     , Just updates <- mapM f $ split (is ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
-    = paren (renderUpdate (Update (paren $ editUpdates [e]) fields updates)) : end2 ++ editUpdates xs
+    = paren (renderUpdate (Update (paren $ editUpdates (e : fields)) [] updates)) : end2 ++ editUpdates xs
     where
-        spanFields (x:y:xs)
+        spanFields1 (x:y:xs)
             | noWhitespace x, is "." x
             , isField y
-            = first (hashField y:) $ spanFields xs
-        spanFields xs = ([], xs)
+            = first (++ [x,y]) $ spanFields1 xs
+        spanFields1 xs = ([], xs)
+
+        spanFields2 (x:y:xs)
+            | noWhitespace x, is "." x
+            , isField y
+            = first (hashField y:) $ spanFields2 xs
+        spanFields2 xs = ([], xs)
 
         f (field1:xs)
             | isField field1
-            , (fields, xs) <- spanFields xs
+            , (fields, xs) <- spanFields2 xs
             , op:xs <- xs
             = Just (hashField field1:fields, if is "=" op then Nothing else Just op, paren xs)
         f xs = Nothing

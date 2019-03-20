@@ -45,9 +45,9 @@ test2 = do
 
     -- check complex updates
     foo2{the_b = 8}.the_b === 8
-    foo1{the_b.job = "c"} === foo1.the_b{job = "c"}
-    foo1.the_b{job ++ "b"} === foo1{the_b.job = "bb"}
-    foo1.the_b{job ++ "b", name = "q"} === foo1{the_b = Human "q" "bb"}
+    foo1{the_b.job = "c"} === foo1{the_b = foo1.the_b{job = "c"}}
+    foo1.the_b{job ++ "b"} === (foo1.the_b){job = "bb"}
+    foo1{the_b.job ++ "b", the_b.name = "q"} === foo1{the_b = Human "q" "bb"}
 
     -- check updates are ordered correctly
     foo1{the_b = Human "x" "y", the_b.job="z"} === foo1{the_b = Human "x" "z"}
@@ -55,7 +55,7 @@ test2 = do
     -- check for nesting
     (foo1.the_b).job === "b"
     foo1{the_b = foo1.the_b{job="r"}}.the_b.job === "r"
-    (foo1.the_b{job="n"}){the_b.name="m"}.the_b === Human "m" "n"
+    (foo1{the_b.job="n"}){the_b.name="m"}.the_b === Human "m" "n"
 
     -- check we don't go into constructors
     Control.Exception.evaluate ()
