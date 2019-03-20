@@ -81,13 +81,12 @@ editSelectors xs = continue editSelectors xs
 
 
 type Field = Paren Lexeme -- passes isField, has had hashField applied
-data Update = Update (Paren Lexeme) [Field] [([Field], Maybe (Paren Lexeme), Paren Lexeme)]
+data Update = Update (Paren Lexeme) [([Field], Maybe (Paren Lexeme), Paren Lexeme)]
     -- expression, fields, then (fields, operator, body)
 
 renderUpdate :: Update -> [Paren Lexeme]
-renderUpdate (Update e fields upd) =
+renderUpdate (Update e upd) =
     e : spc : gen "Z.&" : spc :
-    concat [[x, spc, gen "Z.%~", spc] | x <- fields] ++
     [paren $ intercalate [spc, gen ".", spc]
         [ pure $ paren $ concat [ [x, spc, gen "Z.%~", spc] | x <- fields] ++ [paren [operator op, body]]
         | (fields, op, body) <- reverse upd]
@@ -107,7 +106,7 @@ editUpdates (e:xs)
     , lexeme brace == "{"
     , Just updates <- mapM f $ split (is ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
-    = paren (renderUpdate (Update (paren $ editUpdates (e : fields)) [] updates)) : end2 ++ editUpdates xs
+    = paren (renderUpdate (Update (paren $ editUpdates (e : fields)) updates)) : end2 ++ editUpdates xs
     where
         spanFields1 (x:y:xs)
             | noWhitespace x, is "." x
