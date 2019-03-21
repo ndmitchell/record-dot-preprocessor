@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveFunctor #-}
 
 -- Most of this module follows the Haskell report, https://www.haskell.org/onlinereport/lexemes.html
-module Paren(Paren(..), parenOn, unparen) where
+module Paren(Paren(..), parenOn, unparen, unparens) where
 
 import Data.Tuple.Extra
 
@@ -27,8 +27,9 @@ parenOn proj pairs = fst . go Nothing
         go close [] = ([], Nothing)
 
 
-unparen :: [Paren a] -> [a]
-unparen = concatMap f
-    where
-        f (Item x) = [x]
-        f (Paren a b c) = [a] ++ unparen b ++ [c]
+unparens :: [Paren a] -> [a]
+unparens = concatMap unparen
+
+unparen :: Paren a -> [a]
+unparen (Item x) = [x]
+unparen (Paren a b c) = [a] ++ unparens b ++ [c]

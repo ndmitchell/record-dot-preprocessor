@@ -29,15 +29,13 @@ main = do
 
 runConvert :: FilePath -> FilePath -> FilePath -> IO ()
 runConvert original input output = do
-    res <- unlexer original . unparen . edit . paren . lexer <$> readFileUTF8' input
+    res <- unlexer original . unparens . edit . paren . lexer <$> readFileUTF8' input
     if output == "-" then putStrLn res else writeFileUTF8 output res
     where paren = parenOn lexeme [("(",")"),("[","]"),("{","}")]
 
 
 runTest :: [FilePath] -> IO ()
 runTest dirs = withTempDir $ \tdir -> do
-    createDirectory $ tdir </> "Control"
-    writeFile (tdir </> "Control/Lens.hs") "module Control.Lens(module X) where import Lens.Micro as X"
     forM_ dirs $ \dir -> do
         files <- ifM (doesDirectoryExist dir) (listFilesRecursive dir) (return [dir])
         forM_ files $ \file -> when (takeExtension file `elem` [".hs",".lhs"]) $ do
