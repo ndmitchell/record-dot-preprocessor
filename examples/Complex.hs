@@ -56,6 +56,8 @@ test2 = do
     (foo1.the_b).job === "b"
     foo1{the_b = foo1.the_b{job="r"}}.the_b.job === "r"
     (foo1{the_b.job="n"}){the_b.name="m"}.the_b === Human "m" "n"
+    let foo11 = (foo1, foo1)
+    foo11._1.the_b{job="n"} === Human "m" "n"
 
     -- check we don't go into constructors
     Control.Exception.evaluate ()

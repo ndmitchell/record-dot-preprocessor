@@ -121,7 +121,7 @@ editUpdates (e:xs)
         spanFields1 (x:y:xs)
             | null $ getWhite x, is "." x
             , isField y
-            = first (++ [x,y]) $ spanFields1 xs
+            = first ([x,y] ++) $ spanFields1 xs
         spanFields1 xs = ([], xs)
 
         spanFields2 (x:y:xs)
