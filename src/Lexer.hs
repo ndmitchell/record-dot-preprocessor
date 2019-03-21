@@ -6,6 +6,7 @@ module Lexer(Lexeme(..), lexer) where
 import Data.Char
 import Data.Tuple.Extra
 
+-- | A lexeme of text, approx some letters followed by some space.
 data Lexeme = Lexeme
     {line :: {-# UNPACK #-} !Int -- ^ 1-based line number (0 = generated)
     ,col :: {-# UNPACK #-} !Int -- ^ 1-based col number (0 = generated)

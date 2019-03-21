@@ -5,7 +5,10 @@ module Paren(Paren(..), parenOn, unparen) where
 
 import Data.Tuple.Extra
 
-data Paren a = Item a | Paren a [Paren a] a
+-- | A list of items which are paranthesised.
+data Paren a
+    = Item a -- Indiviaaul item
+    | Paren a [Paren a] a -- parenthesise, open, inner, close
     deriving (Show,Eq,Functor)
 
 parenOn :: forall a b . Eq b => (a -> b) -> [(b, b)] -> [a] -> [Paren a]
