@@ -13,8 +13,8 @@ fails val = do
         Left (_ :: SomeException) -> return ()
         Right _ -> fail "Expected an exception"
 
-(===) :: Eq a => a -> a -> IO ()
-a === b = if a == b then return () else fail "Mismatch"
+(===) :: (Show a, Eq a) => a -> a -> IO ()
+a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
 
 
 -- can you deal with multiple alternatives
@@ -30,10 +30,10 @@ test1 = do
 
 -- can you deal with polymorphism
 data Foo a b = Foo {name :: (a, Maybe b), the_b :: b, x :: Int}
-    deriving Eq
+    deriving (Show,Eq)
 
 data Person = Person {age :: Int, address :: String}
-    deriving Eq
+    deriving (Show,Eq)
 
 test2 :: IO ()
 test2 = do
