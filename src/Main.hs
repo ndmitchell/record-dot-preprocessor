@@ -35,7 +35,7 @@ runConvert original input output = do
 
 
 runTest :: [FilePath] -> IO ()
-runTest dirs = withTempDir $ \tdir -> do
+runTest dirs = withTempDir $ \tdir ->
     forM_ dirs $ \dir -> do
         files <- ifM (doesDirectoryExist dir) (listFilesRecursive dir) (return [dir])
         forM_ files $ \file -> when (takeExtension file `elem` [".hs",".lhs"]) $ do
