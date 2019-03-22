@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fplugin=RecordDotPlugin #-}
 {-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds #-}
 
 data Company = Company {name :: String, owner :: Person}
