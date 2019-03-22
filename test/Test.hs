@@ -2,6 +2,8 @@
 module Test(main) where
 
 import qualified Preprocessor
+import GHC.Records.Extra() -- To ensure the runtime dependency is present
+
 import System.Directory.Extra
 import System.Environment
 import System.FilePath

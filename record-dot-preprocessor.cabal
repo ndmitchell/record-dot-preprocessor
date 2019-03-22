@@ -49,6 +49,7 @@ test-suite record-dot-preprocessor-test
     build-depends:
         base == 4.*,
         extra,
+        record-hasfield,
         filepath
     other-modules:
         Preprocessor
