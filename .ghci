@@ -1,4 +1,4 @@
 :set -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
-:set -isrc
-:load src\Main.hs
+:set -ipreprocessor
+:load preprocessor\Main.hs
 :def test const $ return ":main --test examples"
