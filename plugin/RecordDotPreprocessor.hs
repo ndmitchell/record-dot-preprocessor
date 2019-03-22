@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -W #-}
 
-module RecordDotPlugin(plugin) where
+module RecordDotPreprocessor(plugin) where
 
 import Control.Monad.IO.Class
 import Data.Generics.Uniplate.Data
