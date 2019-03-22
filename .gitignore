@@ -2,3 +2,4 @@
 /.hpc/
 .stack-work/
 stack.yaml
+examples/*_out.hs
