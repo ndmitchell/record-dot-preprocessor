@@ -1,4 +1,4 @@
 :set -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
 :set -ipreprocessor
-:load preprocessor\Main.hs
+:load test\Test.hs
 :def test const $ return ":main --test examples"
