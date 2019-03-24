@@ -17,20 +17,41 @@ Here we declare two records both with `name` as a field, then write `c.name` and
 
 ## How do I use this magic?
 
-First install `record-dot-preprocessor` with either `stack install record-dot-preprocessor` or `cabal update && cabal install record-dot-preprocessor`. Then add `{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}` to the top of the file. Suddenly your records will work. You must make sure that the preprocessor is applied both to the file where your records are defined, and where the record syntax is used.
+First install `record-dot-preprocessor` with either `stack install record-dot-preprocessor` or `cabal update && cabal install record-dot-preprocessor`. Then at the top of the file add:
 
-The resulting program will require GHC 8.2 or above and the [`lens` library](https://hackage.haskell.org/package/lens), or a module called `Control.Lens` exporting the contents of [`Lens.Micro` from `microlens`](https://hackage.haskell.org/package/microlens/docs/Lens-Micro.html) (which has significantly less dependencies).
+* `{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}` for the preprocessor.
+
+<!--
+* Or: `{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}` for the GHC plugin.
+
+The GHC plugin only runs on GHC 8.6 or higher and has better error messages and is less likely to break your source file, while the preprocessor runs on more GHC versions and has more features.
+-->
+
+You must make sure that the `OPTIONS_GHC` is applied both to the file where your records are defined, and where the record syntax is used. The resulting program will require the [`record-hasfield` library](https://hackage.haskell.org/package/record-hasfield).
+
+There is a version of this code as a GHC plugin, but I haven't been able to get it working locally, so it is not recommended.
 
 ## What magic is available, precisely?
 
-* `e.b`, where `e` is an expression (not a constructor) and there are no whitespace on either side of the `.`, is translated to a record lookup. If you want to use the standard `.` function composition operator, insert a space. If you want to use a qualfied module name, then `e` will look like a constructor, so it won't clash.
-* `e{b = c}` is a record update. Provided the record was defined in a module where `record-dot-preprocessor` was used, the meaning will be equivalent to before. If you want to use a normal unchanged record update, insert a space before the `{`.
-* `e{b * c}`, where `*` is an arbitrary operator, is equivalent to `e{b = e.b * c}`. If you want to apply an arbitrary function as `c`, use the `&` operator. Think `e.b *= c` in C-style languages.
-* `e.b.c{d.e * 1, f.g = 2}` also works and all variants along those lines.
+Using the preprocessor or the future GHC plugin you can write:
 
-## I don't believe in magic, what's the underlying science?
+* `expr.lbl` is equivalent to `getField @"lbl" expr` (the `.` cannot have whitespace on either side).
+* `expr{lbl = val}` is equivalent to `setField @"lbl" expr val`.
+* `(.lbl)` is equivalent to `(\x -> x.lbl)` (the `.` cannot have whitespace after).
 
-On the way back from [ZuriHac 2017](https://2017.zurihac.info/) [Neil Mitchell](https://ndmitchell.com) and [Mathieu Boespflug](https://www.tweag.io/contact) were discussing lenses and the sad state of records in Haskell. We both agreed that overloaded labels should be defined such that they resolve to lenses. With the right instances, you could define `a ^. #foo` to get the `foo` field from the expression `a`. This preprocessor just turns `a.foo` into `a ^. #foo`, and generates the right instances. If you really want to see the magic under the hood simply run `record-dot-preprocessor yourfile.hs` and it will print out what it generates.
+Using the preprocessor, but _not_ the future GHC plugin:
+
+* `expr{lbl1.lbl2 = val}` is equivalent to `expr{lbl1 = (expr.lbl1){lbl2 = val}}`, performing a nested update.
+* `expr{lbl * val}` is equivalent to `expr{lbl = expr.lbl * val}`, where `*` can be any operator.
+* `expr{lbl1.lbl2}` is equivalent to `expr{lbl1.lbl2 = lbl2}`.
+
+These forms combine to offer the identities:
+
+* `expr.lbl1.lbl2` is equivalent to `(expr.lbl1).lbl2`.
+* `(.lbl1.lbl2)` is equivalent to `(\x -> x.lbl1.lbl2)`.
+* `expr.lbl1{lbl2 = val}` is equivalent to `(expr.lbl1){lbl2 = val}`.
+* `expr{lbl1 = val}.lbl2` is equivalent to `(expr{lbl1 = val}).lbl2`.
+* `expr{lbl1.lbl2 * val}` is equivalent to `expr{lbl1.lbl2 = expr.lbl1.lbl2 * val}`
 
 ## How does this magic compare to other magic?
 
