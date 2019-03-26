@@ -3,3 +3,5 @@
 .stack-work/
 stack.yaml
 examples/*_out.hs
+*.hi
+*.o
