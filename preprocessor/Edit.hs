@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 
 module Edit(edit) where
 
@@ -16,6 +17,27 @@ edit = editAddPreamble . editAddInstances . editSelectors . editUpdates
 
 ---------------------------------------------------------------------
 -- HELPERS
+
+pattern PL :: String -> Paren Lexeme
+pattern PL x <- (unPL -> Just x) where
+    PL x = Item $ L x
+
+isPL :: String -> Paren Lexeme -> Bool
+isPL x y = unPL y == Just x
+
+unPL :: Paren Lexeme -> Maybe String
+unPL (Item (L x)) = Just x
+unPL _ = Nothing
+
+pattern L :: String -> Lexeme
+pattern L x <- (unL -> x) where
+    L x = Lexeme 0 0 x ""
+
+unL :: Lexeme -> String
+unL = lexeme
+
+
+
 
 nl = Item $ Lexeme 0 0 "" "\n"
 spc = Item $ Lexeme 0 0 "" " "
@@ -146,7 +168,7 @@ editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
 editAddInstances xs = xs ++ concatMap (\x -> [nl, gen x])
     [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
       "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ ":: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
-    | Record rname rargs fields <- parseRecords $ map (fmap lexeme) xs
+    | Record rname rargs fields <- parseRecords xs
     , let rtyp = "(" ++ unwords (rname : rargs) ++ ")"
     , (fname, ftyp) <- fields
     ]
@@ -165,28 +187,24 @@ data Record = Record
     deriving Show
 
 -- | Find all the records and parse them
-parseRecords :: [Paren String] -> [Record]
-parseRecords = mapMaybe whole . drop 1 . split (`elem` [Item "data", Item "newtype"])
+parseRecords :: [Paren Lexeme] -> [Record]
+parseRecords = mapMaybe whole . drop 1 . split (isPL "data" ||^ isPL "newtype")
     where
-        whole :: [Paren String] -> Maybe Record
+        whole :: [Paren Lexeme] -> Maybe Record
         whole xs
-            | Item typeName : xs <- xs
-            , (typeArgs, _:xs) <- break (== Item "=") xs
-            = Just $ Record typeName [x | Item x <- typeArgs] $ nubOrd $ ctor xs
+            | PL typeName : xs <- xs
+            , (typeArgs, _:xs) <- break (isPL "=") xs
+            = Just $ Record typeName [x | PL x <- typeArgs] $ nubOrd $ ctor xs
         whole _ = Nothing
 
         ctor xs
-            | Item ctorName : Paren "{" inner _ : xs <- xs
-            = fields (map (break (== Item "::")) $ split (== Item ",") inner) ++
-              maybe [] ctor (stripPrefix [Item "|"] xs)
+            | PL ctorName : Paren (L "{") inner _ : xs <- xs
+            = fields (map (break (isPL "::")) $ split (isPL ",") inner) ++
+              case xs of
+                PL "|":xs -> ctor xs
+                _ -> []
         ctor _ = []
 
         fields ((x,[]):(y,z):rest) = fields $ (x++y,z):rest
-        fields ((names, _:typ):rest) = [(name, trim $ dropWhile (== '!') $ unwordsDot $ unparens typ) | Item name <- names] ++ fields rest
+        fields ((names, _:typ):rest) = [(name, dropWhile (== '!') $ trim $ unlexer $ unparens typ) | PL name <- names] ++ fields rest
         fields _ = []
-
--- FIXME: Unconvinced this is necessary - should instead be using the original whitespace
-unwordsDot (x:".":y:zs) = unwordsDot $ (x ++ "." ++ y) : zs
-unwordsDot (x:y:zs) = unwordsDot $ (x ++ " " ++ y) : zs
-unwordsDot [x] = x
-unwordsDot [] = ""
