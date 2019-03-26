@@ -1,8 +1,5 @@
 
 import System.Process.Extra
-import System.Directory
 
-main = do
-    system_ "cabal install record-hasfield"
-    system_ "record-dot-preprocessor --test examples"
-    system_ "runhaskell -F -pgmF=record-dot-preprocessor -isrc preprocessor/Main.hs"
+main =
+    system_ "record-dot-preprocessor-test --installed"
