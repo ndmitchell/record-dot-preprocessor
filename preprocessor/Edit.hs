@@ -37,17 +37,14 @@ unL :: Lexeme -> String
 unL = lexeme
 
 
-
-
 nl = Item $ Lexeme 0 0 "" "\n"
 spc = Item $ Lexeme 0 0 "" " "
-gen = Item . gen_
-gen_ x = Lexeme 0 0 x ""
+
 
 paren [x] = x
 paren xs = case unsnoc xs of
-    Just (xs,Item x) -> Paren (gen_ "(") (xs `snoc` Item x{whitespace=""}) (gen_ ")"){whitespace=whitespace x}
-    _ -> Paren (gen_ "(") xs (gen_ ")")
+    Just (xs,Item x) -> Paren (L "(") (xs `snoc` Item x{whitespace=""}) (L ")"){whitespace=whitespace x}
+    _ -> Paren (L "(") xs (L ")")
 
 is x (Item y) = lexeme y == x
 is x _ = False
@@ -82,8 +79,8 @@ editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
 editAddPreamble o@xs
     | (premodu, modu:modname@xs) <- break (is "module") xs
     , (prewhr, whr:xs) <- break (is "where") xs
-    = gen prefix : nl : premodu ++ modu : prewhr ++ whr : nl : gen imports : nl : xs ++ [nl, gen $ trailing modname, nl]
-    | otherwise = gen prefix : nl : gen imports : nl : xs ++ [nl, gen $ trailing [], nl]
+    = PL prefix : nl : premodu ++ modu : prewhr ++ whr : nl : PL imports : nl : xs ++ [nl, PL $ trailing modname, nl]
+    | otherwise = PL prefix : nl : PL imports : nl : xs ++ [nl, PL $ trailing [], nl]
     where
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, OverloadedLabels #-}"
         imports = "import qualified GHC.Records.Extra as Z"
@@ -105,8 +102,8 @@ editSelectors (x:dot:field:rest)
     , isField field
     , not $ isCtor x
     = editSelectors $
-        paren ([gen "Z.getField", spc, gen (makeField [field]), spc] ++ editSelectors [x]) :
-        [setWhite (getWhite field) (gen "") | getWhite field /= ""] ++ rest
+        paren ([PL "Z.getField", spc, PL (makeField [field]), spc] ++ editSelectors [x]) :
+        [setWhite (getWhite field) (PL "") | getWhite field /= ""] ++ rest
 editSelectors xs = continue editSelectors xs
 
 
@@ -122,12 +119,12 @@ renderUpdate :: Update -> [Paren Lexeme]
 renderUpdate (Update e upd) = case unsnoc upd of
     Nothing -> [e]
     Just (rest, (field, operator, body)) -> return $ paren $
-        [gen $ if isNothing operator then "Z.setField" else "Z.modifyField"
+        [PL $ if isNothing operator then "Z.setField" else "Z.modifyField"
         ,spc
-        ,gen $ makeField field
+        ,PL $ makeField field
         ,spc] ++
         renderUpdate (Update e rest) ++
-        [paren $ [if is "-" o then gen "subtract" else o | Just o <- [operator]] ++ [spc, body]]
+        [paren $ [if is "-" o then PL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
 
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
 editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
@@ -165,7 +162,7 @@ editUpdates xs = continue editUpdates xs
 -- INSTANCES
 
 editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
-editAddInstances xs = xs ++ concatMap (\x -> [nl, gen x])
+editAddInstances xs = xs ++ concatMap (\x -> [nl, PL x])
     [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
       "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ ":: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
     | Record rname rargs fields <- parseRecords xs
