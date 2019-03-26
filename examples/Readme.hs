@@ -1,3 +1,5 @@
+-- This is the example from README.md to test
+
 data Company = Company {name :: String, owner :: Person}
 data Person = Person {name :: String, age :: Int}
 

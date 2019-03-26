@@ -1,3 +1,5 @@
+-- Test for things only supported by the preprocessor
+
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults #-} -- can we produce -Wall clean code
 {-# LANGUAGE ScopedTypeVariables #-}
 
