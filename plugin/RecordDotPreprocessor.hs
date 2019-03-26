@@ -22,6 +22,7 @@ var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 plugin :: GHC.Plugin
 plugin = GHC.defaultPlugin
     { GHC.parsedResultAction = \_cliOptions -> pluginImpl
+    , GHC.pluginRecompile = GHC.purePlugin
     }
 
 
