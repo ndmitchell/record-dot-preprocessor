@@ -110,7 +110,7 @@ renderUpdate (Update e upd) = case unsnoc upd of
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
 editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
 editUpdates (e:xs)
-    | null $ getWhite e, not $ isCtor e
+    | not $ isCtor e
     , (fields, xs) <- spanFields1 xs
     , Paren brace inner end:xs <- xs
     , lexeme brace == "{"
