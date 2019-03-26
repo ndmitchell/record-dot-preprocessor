@@ -1,9 +1,10 @@
 {-# LANGUAGE RecordWildCards, BangPatterns #-}
 
 -- Most of this module follows the Haskell report, https://www.haskell.org/onlinereport/lexemes.html
-module Lexer(Lexeme(..), lexer) where
+module Lexer(Lexeme(..), lexer, unlexer, unlexerLine) where
 
 import Data.Char
+import Data.List
 import Data.Tuple.Extra
 
 -- | A lexeme of text, approx some letters followed by some space.
@@ -83,3 +84,22 @@ lexerWhitespace ('{':'-':xs) = seen "{-" $ f 1 xs
 lexerWhitespace xs = ([], xs)
 
 seen xs = first (xs++)
+
+
+unlexer :: [Lexeme] -> String
+unlexer = concatMap $ \x -> lexeme x ++ whitespace x
+
+
+unlexerLine :: FilePath -> [Lexeme] -> String
+unlexerLine src xs =
+    dropping 1 ++
+    go 1 True [(line, lexeme ++ whitespace) | Lexeme{..} <- xs]
+    where
+        go :: Int -> Bool -> [(Int, String)] -> String
+        go doc drp ((i, x):xs) =
+            (if doc /= i && i /= 0 && drp then dropping i else "") ++
+            x ++
+            go ((if i == 0 then doc else i) + length (filter (== '\n') x)) ("\n" `isSuffixOf` x) xs
+        go _ _ [] = ""
+
+        dropping n = "{-# LINE " ++ show n ++ " " ++ show src ++ " #-}\n"

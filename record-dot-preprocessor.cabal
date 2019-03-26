@@ -70,4 +70,3 @@ test-suite record-dot-preprocessor-test
         Edit
         Lexer
         Paren
-        Unlexer

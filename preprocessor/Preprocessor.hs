@@ -3,7 +3,6 @@ module Preprocessor(main) where
 
 import Lexer
 import Paren
-import Unlexer
 import Edit
 import System.IO.Extra
 import System.Environment
@@ -24,6 +23,6 @@ main = do
 
 runConvert :: FilePath -> FilePath -> FilePath -> IO ()
 runConvert original input output = do
-    res <- unlexer original . unparens . edit . paren . lexer <$> readFileUTF8' input
+    res <- unlexerLine original . unparens . edit . paren . lexer <$> readFileUTF8' input
     if output == "-" then putStrLn res else writeFileUTF8 output res
     where paren = parenOn lexeme [("(",")"),("[","]"),("{","}")]
