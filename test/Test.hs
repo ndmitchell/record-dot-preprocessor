@@ -2,7 +2,7 @@
 module Test(main) where
 
 import qualified Preprocessor
-import qualified PluginExample -- To make sure we are testing the plugin
+import qualified PluginExample -- To test the plugin
 import GHC.Records.Extra() -- To ensure the runtime dependency is present
 
 import System.Directory.Extra
