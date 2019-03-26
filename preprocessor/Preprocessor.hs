@@ -23,6 +23,6 @@ main = do
 
 runConvert :: FilePath -> FilePath -> FilePath -> IO ()
 runConvert original input output = do
-    res <- unlexerLine original . unparens . edit . paren . lexer <$> readFileUTF8' input
+    res <- unlexerFile original . unparens . edit . paren . lexer <$> readFileUTF8' input
     if output == "-" then putStrLn res else writeFileUTF8 output res
     where paren = parenOn lexeme [("(",")"),("[","]"),("{","}")]
