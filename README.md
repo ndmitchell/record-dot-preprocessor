@@ -19,27 +19,22 @@ Here we declare two records both with `name` as a field, then write `c.name` and
 
 First install `record-dot-preprocessor` with either `stack install record-dot-preprocessor` or `cabal update && cabal install record-dot-preprocessor`. Then at the top of the file add:
 
-* `{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}` for the preprocessor.
+* Either: `{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}` for the preprocessor.
+* Or: `{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}` and `{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds #-}` for the GHC plugin.
 
-<!--
-* Or: `{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}` for the GHC plugin.
-
-The GHC plugin only runs on GHC 8.6 or higher and has better error messages and is less likely to break your source file, while the preprocessor runs on more GHC versions and has more features.
--->
+The GHC plugin only runs on GHC 8.6 or higher, doesn't work on Windows, has better error messages and is less likely to break your source file. In contrast, the preprocessor runs everywhere and has more features.
 
 You must make sure that the `OPTIONS_GHC` is applied both to the file where your records are defined, and where the record syntax is used. The resulting program will require the [`record-hasfield` library](https://hackage.haskell.org/package/record-hasfield).
 
-There is a version of this code as a GHC plugin, but I haven't been able to get it working locally, so it is not recommended.
-
 ## What magic is available, precisely?
 
-Using the preprocessor or the future GHC plugin you can write:
+Using the preprocessor or the GHC plugin you can write:
 
 * `expr.lbl` is equivalent to `getField @"lbl" expr` (the `.` cannot have whitespace on either side).
 * `expr{lbl = val}` is equivalent to `setField @"lbl" expr val`.
 * `(.lbl)` is equivalent to `(\x -> x.lbl)` (the `.` cannot have whitespace after).
 
-Using the preprocessor, but _not_ the future GHC plugin:
+Using the preprocessor, but _not_ the GHC plugin:
 
 * `expr{lbl1.lbl2 = val}` is equivalent to `expr{lbl1 = (expr.lbl1){lbl2 = val}}`, performing a nested update.
 * `expr{lbl * val}` is equivalent to `expr{lbl = expr.lbl * val}`, where `*` can be any operator.

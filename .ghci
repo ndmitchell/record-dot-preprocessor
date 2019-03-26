@@ -1,4 +1,5 @@
 :set -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
-:set -ipreprocessor
-:load test\Test.hs
-:def test const $ return ":main --test examples"
+:set -ipreprocessor -iplugin -itest
+:set -package=ghc
+:load test/Test.hs
+:def test \x -> return $ ":main " ++ x

@@ -37,7 +37,7 @@ pluginImpl _modSummary m = do
 
 
 debug :: MonadIO m => String -> m ()
-debug = when False . liftIO . putStrLn
+debug = when True . liftIO . putStrLn
 
 tweak :: GHC.Located (HsModule GhcPs) -> GHC.Located (HsModule GhcPs)
 tweak = descendBi onExp . descendBi onModule
