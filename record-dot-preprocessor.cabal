@@ -63,6 +63,7 @@ test-suite record-dot-preprocessor-test
         record-hasfield,
         filepath
     other-modules:
+        PluginExample
         Preprocessor
         Edit
         Lexer
