@@ -63,6 +63,7 @@ test-suite record-dot-preprocessor-test
         base == 4.*,
         extra,
         record-hasfield,
+        record-dot-preprocessor,
         filepath
     other-modules:
         PluginExample
