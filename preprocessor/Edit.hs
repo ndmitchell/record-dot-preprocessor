@@ -9,6 +9,7 @@ import Data.Char
 import Data.List.Extra
 import Data.Tuple.Extra
 import Control.Monad.Extra
+import Debug.Trace
 
 
 edit :: [PL] -> [PL]
@@ -60,9 +61,13 @@ isCtor _ = False
 isField (Item x) = all (isLower ||^ (== '_')) $ take 1 $ lexeme x
 isField _ = False
 
-makeField :: [PL] -> String
-makeField [x] = "@" ++ show (concatMap lexeme $ unparen x)
-makeField xs = "@'(" ++ intercalate "," (map (show . concatMap lexeme . unparen) xs) ++ ")"
+makeField :: [String] -> String
+makeField [x] = "@" ++ show x
+makeField xs = "@'(" ++ intercalate "," (map show xs) ++ ")"
+
+makeFieldOld :: [PL] -> String
+makeFieldOld [x] = "@" ++ show (concatMap lexeme $ unparen x)
+makeFieldOld xs = "@'(" ++ intercalate "," (map (show . concatMap lexeme . unparen) xs) ++ ")"
 
 
 ---------------------------------------------------------------------
@@ -88,15 +93,22 @@ editAddPreamble o@xs
 ---------------------------------------------------------------------
 -- SELECTORS
 
+-- given e.lbl1.lbl2 return (e, [lbl1,lbl2], whitespace, rest)
+spanFields :: [PL] -> Maybe (PL, [String], String, [PL])
+spanFields (NoW e:xs) = let (a,b,c) = f xs in if null a then Nothing else Just (e,a,b,c)
+    where
+        f (NoW (PL "."):x@(PL (fld@(fld1:_))):xs) | fld1 == '_' || isLower fld1 = (\(a,b,c) -> (fld:a,b,c)) $
+            case x of NoW{} -> f xs; _ -> ([], getWhite x, xs)
+        f xs = ([], "", xs)
+spanFields _ = Nothing
+
+
 editLoop :: [PL] -> [PL]
 
 -- | a.b.c ==> getField @'(b,c) a
-editLoop (NoW x:NoW (PL "."):field:rest)
-    | isField field
-    , not $ isCtor x
-    = editLoop $
-        paren ([mkPL "Z.getField", spc, mkPL (makeField [field]), spc] ++ [x]) :
-        [setWhite (getWhite field) (mkPL "") | getWhite field /= ""] ++ rest
+editLoop (spanFields -> Just (e, fields, whitespace, rest))
+    | not $ isCtor e
+    = editLoop $ setWhite whitespace (paren ([mkPL "Z.getField", spc, mkPL (makeField fields), spc] ++ [e])) : rest
 
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
 editLoop (e:Paren (L "{") inner end:xs)
@@ -137,7 +149,7 @@ renderUpdate (Update e upd) = case unsnoc upd of
     Just (rest, (field, operator, body)) -> return $ paren $
         [mkPL $ if isNothing operator then "Z.setField" else "Z.modifyField"
         ,spc
-        ,mkPL $ makeField field
+        ,mkPL $ makeFieldOld field
         ,spc] ++
         renderUpdate (Update e rest) ++
         [paren $ [if isPL "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
