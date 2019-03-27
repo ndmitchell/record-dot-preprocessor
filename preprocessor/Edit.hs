@@ -99,10 +99,8 @@ editLoop (NoW x:NoW (PL "."):field:rest)
         [setWhite (getWhite field) (mkPL "") | getWhite field /= ""] ++ rest
 
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
-editLoop (e:xs)
+editLoop (e:Paren (L "{") inner end:xs)
     | not $ isCtor e
-    , Paren brace inner end:xs <- xs
-    , lexeme brace == "{"
     , Just updates <- mapM f $ split (isPL ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
     = editLoop $ paren (renderUpdate (Update e updates)) : end2 ++ xs
