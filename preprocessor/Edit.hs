@@ -101,6 +101,10 @@ editLoop (NoW e : (spanFields -> (fields@(_:_), whitespace, rest)))
     | not $ isCtor e
     = editLoop $ (addWhite whitespace $ paren [spc $ mkPL "Z.getField", spc $ mkPL $ makeField fields, e]) : rest
 
+-- (.a.b) ==> (getField @'(a,b))
+editLoop (Paren start@(L "(") (spanFields -> (fields@(_:_), whitespace, [])) end:xs)
+    = editLoop $ Paren start [spc $ mkPL "Z.getField", addWhite whitespace $ mkPL $ makeField fields] end : xs
+
 -- e{b.c=d, ...} ==> setField @'(b,c) d
 editLoop (e:Paren (L "{") inner end:xs)
     | not $ isCtor e

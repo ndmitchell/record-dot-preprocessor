@@ -32,8 +32,8 @@ test1 = do
     foo{foo1 = "a"}.foo1 === "a"
 
     -- (.lbl)
-    -- map (.foo1) [foo, foo{foo1="q"}] === ["test", "q"]
-    -- (.foo1.foo2) (Foo foo 3) === 2
+    map (.foo1) [foo, foo{foo1="q"}] === ["test", "q"]
+    (.foo1._foo2) (Foo foo 3) === 2
 
 
 ---------------------------------------------------------------------
