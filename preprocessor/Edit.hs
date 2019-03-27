@@ -9,7 +9,6 @@ import Data.Char
 import Data.List.Extra
 import Data.Tuple.Extra
 import Control.Monad.Extra
-import Debug.Trace
 
 
 edit :: [PL] -> [PL]
@@ -37,17 +36,15 @@ mkPL = Item . mkL
 pattern NoW x <- ((\v -> if null $ getWhite v then Just v else Nothing) -> Just x)
 
 
-
-
-nl = Item $ Lexeme 0 0 "" "\n"
-spc = Item $ Lexeme 0 0 "" " "
-
-
 paren [x] = x
 paren xs = case unsnoc xs of
-    Just (xs,Item x) -> Paren (mkL "(") (xs `snoc` Item x{whitespace=""}) (mkL ")"){whitespace=whitespace x}
+    Just (xs,x) -> Paren (mkL "(") (xs `snoc` setWhite "" x) (mkL ")"){whitespace = getWhite x}
     _ -> Paren (mkL "(") xs (mkL ")")
 
+spc = addWhite " "
+nl = addWhite "\n"
+
+addWhite w x = setWhite (getWhite x ++ w) x
 
 getWhite (Item x) = whitespace x
 getWhite (Paren _ _ x) = whitespace x
@@ -78,8 +75,8 @@ editAddPreamble :: [PL] -> [PL]
 editAddPreamble o@xs
     | (premodu, modu:modname@xs) <- break (isPL "module") xs
     , (prewhr, whr:xs) <- break (isPL "where") xs
-    = mkPL prefix : nl : premodu ++ modu : prewhr ++ whr : nl : mkPL imports : nl : xs ++ [nl, mkPL $ trailing modname, nl]
-    | otherwise = mkPL prefix : nl : mkPL imports : nl : xs ++ [nl, mkPL $ trailing [], nl]
+    = nl (mkPL prefix) : premodu ++ modu : prewhr ++ whr : nl (mkPL "") : nl (mkPL imports) : xs ++ [nl $ mkPL "", nl $ mkPL $ trailing modname]
+    | otherwise = nl (mkPL prefix) : nl (mkPL imports) : xs ++ [nl $ mkPL "", nl $ mkPL $ trailing []]
     where
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, OverloadedLabels #-}"
         imports = "import qualified GHC.Records.Extra as Z"
@@ -108,7 +105,7 @@ editLoop :: [PL] -> [PL]
 -- | a.b.c ==> getField @'(b,c) a
 editLoop (spanFields -> Just (e, fields, whitespace, rest))
     | not $ isCtor e
-    = editLoop $ setWhite whitespace (paren ([mkPL "Z.getField", spc, mkPL (makeField fields), spc] ++ [e])) : rest
+    = editLoop $ (addWhite whitespace $ paren [spc $ mkPL "Z.getField", spc $ mkPL (makeField fields), e]) : rest
 
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
 editLoop (e:Paren (L "{") inner end:xs)
@@ -147,19 +144,17 @@ renderUpdate :: Update -> [PL]
 renderUpdate (Update e upd) = case unsnoc upd of
     Nothing -> [e]
     Just (rest, (field, operator, body)) -> return $ paren $
-        [mkPL $ if isNothing operator then "Z.setField" else "Z.modifyField"
-        ,spc
-        ,mkPL $ makeFieldOld field
-        ,spc] ++
+        [spc $ mkPL $ if isNothing operator then "Z.setField" else "Z.modifyField"
+        ,spc $ mkPL $ makeFieldOld field] ++
         renderUpdate (Update e rest) ++
-        [paren $ [if isPL "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
+        [paren $ [if isPL "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc $ mkPL "", body]]
 
 
 ---------------------------------------------------------------------
 -- INSTANCES
 
 editAddInstances :: [PL] -> [PL]
-editAddInstances xs = xs ++ concatMap (\x -> [nl, mkPL x])
+editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
     [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
       "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ ":: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
     | Record rname rargs fields <- parseRecords xs
