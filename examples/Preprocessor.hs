@@ -61,9 +61,6 @@ test2 = do
     let foo11 = (foo1, foo1)
     foo11._1.the_b{job="n"} === Human "a" "n"
 
-    -- check we don't go into constructors
-    Control.Exception.evaluate ()
-
     let person = Person 10 "Home"
     (person{age - 3}){age * 2} === person{age = 14}
 
