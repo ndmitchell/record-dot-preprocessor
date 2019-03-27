@@ -12,7 +12,7 @@ import Control.Monad.Extra
 
 
 edit :: [PL] -> [PL]
-edit = editAddPreamble . editAddInstances . editSelectors . editUpdates
+edit = editAddPreamble . editAddInstances . editLoop
 
 
 ---------------------------------------------------------------------
@@ -65,11 +65,6 @@ makeField [x] = "@" ++ show (concatMap lexeme $ unparen x)
 makeField xs = "@'(" ++ intercalate "," (map (show . concatMap lexeme . unparen) xs) ++ ")"
 
 
-continue op (Paren a b c:xs) = Paren a (op b) c : op xs
-continue op (x:xs) = x : op xs
-continue op [] = []
-
-
 ---------------------------------------------------------------------
 -- PREAMBLE
 
@@ -93,15 +88,48 @@ editAddPreamble o@xs
 ---------------------------------------------------------------------
 -- SELECTORS
 
+editLoop :: [PL] -> [PL]
+
 -- | a.b.c ==> getField @'(b,c) a
-editSelectors :: [PL] -> [PL]
-editSelectors (NoW x:NoW (PL "."):field:rest)
+editLoop (NoW x:NoW (PL "."):field:rest)
     | isField field
     , not $ isCtor x
-    = editSelectors $
-        paren ([mkPL "Z.getField", spc, mkPL (makeField [field]), spc] ++ editSelectors [x]) :
+    = editLoop $
+        paren ([mkPL "Z.getField", spc, mkPL (makeField [field]), spc] ++ [x]) :
         [setWhite (getWhite field) (mkPL "") | getWhite field /= ""] ++ rest
-editSelectors xs = continue editSelectors xs
+
+-- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
+editLoop (e:xs)
+    | not $ isCtor e
+    , (fields, xs) <- spanFields1 xs
+    , Paren brace inner end:xs <- xs
+    , lexeme brace == "{"
+    , Just updates <- mapM f $ split (isPL ",") inner
+    , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
+    = editLoop $ paren (renderUpdate (Update (paren $ e : fields) updates)) : end2 ++ xs
+    where
+        spanFields1 (x:y:xs)
+            | null $ getWhite x, isPL "." x
+            , isField y
+            = first ([x,y] ++) $ spanFields1 xs
+        spanFields1 xs = ([], xs)
+
+        spanFields2 (x:y:xs)
+            | null $ getWhite x, isPL "." x
+            , isField y
+            = first (y:) $ spanFields2 xs
+        spanFields2 xs = ([], xs)
+
+        f (field1:xs)
+            | isField field1
+            , (fields, xs) <- spanFields2 xs
+            , op:xs <- xs
+            = Just (field1:fields, if isPL "=" op then Nothing else Just op, paren xs)
+        f xs = Nothing
+
+editLoop (Paren a b c:xs) = Paren a (editLoop b) c : editLoop xs
+editLoop (x:xs) = x : editLoop xs
+editLoop [] = []
 
 
 ---------------------------------------------------------------------
@@ -122,37 +150,6 @@ renderUpdate (Update e upd) = case unsnoc upd of
         ,spc] ++
         renderUpdate (Update e rest) ++
         [paren $ [if isPL "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
-
--- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
-editUpdates :: [PL] -> [PL]
-editUpdates (e:xs)
-    | not $ isCtor e
-    , (fields, xs) <- spanFields1 xs
-    , Paren brace inner end:xs <- xs
-    , lexeme brace == "{"
-    , Just updates <- mapM f $ split (isPL ",") inner
-    , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
-    = paren (renderUpdate (Update (paren $ editUpdates (e : fields)) updates)) : end2 ++ editUpdates xs
-    where
-        spanFields1 (x:y:xs)
-            | null $ getWhite x, isPL "." x
-            , isField y
-            = first ([x,y] ++) $ spanFields1 xs
-        spanFields1 xs = ([], xs)
-
-        spanFields2 (x:y:xs)
-            | null $ getWhite x, isPL "." x
-            , isField y
-            = first (y:) $ spanFields2 xs
-        spanFields2 xs = ([], xs)
-
-        f (field1:xs)
-            | isField field1
-            , (fields, xs) <- spanFields2 xs
-            , op:xs <- xs
-            = Just (field1:fields, if isPL "=" op then Nothing else Just op, paren xs)
-        f xs = Nothing
-editUpdates xs = continue editUpdates xs
 
 
 ---------------------------------------------------------------------
