@@ -85,20 +85,19 @@ editAddPreamble o@xs
 ---------------------------------------------------------------------
 -- SELECTORS
 
--- given e.lbl1.lbl2 return (e, [lbl1,lbl2], whitespace, rest)
-spanFields :: [PL] -> Maybe (PL, [String], String, [PL])
-spanFields (NoW e:xs) = let (a,b,c) = f xs in if null a then Nothing else Just (e,a,b,c)
+-- given .lbl1.lbl2 return ([lbl1,lbl2], whitespace, rest)
+spanFields :: [PL] -> ([String], String, [PL])
+spanFields xs = f xs
     where
         f (NoW (PL "."):x@(PL fld):xs) | isField fld = (\(a,b,c) -> (fld:a,b,c)) $
             case x of NoW{} -> f xs; _ -> ([], getWhite x, xs)
         f xs = ([], "", xs)
-spanFields _ = Nothing
 
 
 editLoop :: [PL] -> [PL]
 
 -- | a.b.c ==> getField @'(b,c) a
-editLoop (spanFields -> Just (e, fields, whitespace, rest))
+editLoop (NoW e : (spanFields -> (fields@(_:_), whitespace, rest)))
     | not $ isCtor e
     = editLoop $ (addWhite whitespace $ paren [spc $ mkPL "Z.getField", spc $ mkPL (makeField fields), e]) : rest
 
@@ -109,7 +108,7 @@ editLoop (e:Paren (L "{") inner end:xs)
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
     = editLoop $ renderUpdate (Update e updates) : end2 ++ xs
     where
-        f (spanFields -> Just (PL field1, fields, whitespace, xs))
+        f (NoW (PL field1) : (spanFields -> (fields, whitespace, xs)))
             | isField field1
             = g (field1:fields) xs
         f (x@(PL field1):xs)
