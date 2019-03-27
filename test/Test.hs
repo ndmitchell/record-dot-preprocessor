@@ -37,7 +37,7 @@ main = do
                             system_ $ "runhaskell -package=record-dot-preprocessor " ++ dir </> takeFileName file
             else do
                 let out = dropExtension file ++ "_out.hs"
-                withArgs [file,file,out] Preprocessor.main
                 putStrLn $ "# Preprocessor " ++ takeFileName file
+                withArgs [file,file,out] Preprocessor.main
                 system_ $ "runhaskell " ++ out
     putStrLn "Success"
