@@ -32,7 +32,7 @@ pattern PL x <- (unPL -> Just x)
 mkPL = Item . mkL
 
 -- Whitespace
-pattern NoW x <- ((\v -> if null $ getWhite v then Just v else Nothing) -> Just x)
+pattern NoW x <- (\v -> if null $ getWhite v then Just v else Nothing -> Just x)
 
 
 paren [x] = x
@@ -87,11 +87,9 @@ editAddPreamble o@xs
 
 -- given .lbl1.lbl2 return ([lbl1,lbl2], whitespace, rest)
 spanFields :: [PL] -> ([String], String, [PL])
-spanFields xs = f xs
-    where
-        f (NoW (PL "."):x@(PL fld):xs) | isField fld = (\(a,b,c) -> (fld:a,b,c)) $
-            case x of NoW{} -> f xs; _ -> ([], getWhite x, xs)
-        f xs = ([], "", xs)
+spanFields (NoW (PL "."):x@(PL fld):xs) | isField fld = (\(a,b,c) -> (fld:a,b,c)) $
+    case x of NoW{} -> spanFields xs; _ -> ([], getWhite x, xs)
+spanFields xs = ([], "", xs)
 
 
 editLoop :: [PL] -> [PL]
@@ -99,7 +97,7 @@ editLoop :: [PL] -> [PL]
 -- | a.b.c ==> getField @'(b,c) a
 editLoop (NoW e : (spanFields -> (fields@(_:_), whitespace, rest)))
     | not $ isCtor e
-    = editLoop $ (addWhite whitespace $ paren [spc $ mkPL "Z.getField", spc $ mkPL $ makeField fields, e]) : rest
+    = editLoop $ addWhite whitespace (paren [spc $ mkPL "Z.getField", spc $ mkPL $ makeField fields, e]) : rest
 
 -- (.a.b) ==> (getField @'(a,b))
 editLoop (Paren start@(L "(") (spanFields -> (fields@(_:_), whitespace, [])) end:xs)
@@ -138,12 +136,12 @@ data Update = Update
 renderUpdate :: Update -> PL
 renderUpdate (Update e upd) = case unsnoc upd of
     Nothing -> e
-    Just (rest, (field, operator, body)) -> paren $
+    Just (rest, (field, operator, body)) -> paren
         [spc $ mkPL $ if isNothing operator then "Z.setField" else "Z.modifyField"
         ,spc $ mkPL $ makeField field
         ,spc (renderUpdate (Update e rest))
         ,case operator of
-            Just o -> paren $ [spc $ if isPL "-" o then mkPL "subtract" else o, body]
+            Just o -> paren [spc $ if isPL "-" o then mkPL "subtract" else o, body]
             _ -> body
         ]
 
