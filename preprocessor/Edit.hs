@@ -18,17 +18,24 @@ edit = editAddPreamble . editAddInstances . editSelectors . editUpdates
 ---------------------------------------------------------------------
 -- HELPERS
 
+-- Projecting in on the 'lexeme' inside
 type L = Lexeme
 unL = lexeme
 mkL x = Lexeme 0 0 x ""
 pattern L x <- (unL -> x)
 
+-- Projecting in on the lexeme inside an Item
 type PL = Paren L
 unPL (Item (L x)) = Just x
 unPL _ = Nothing
 isPL x y = unPL y == Just x
 pattern PL x <- (unPL -> Just x)
 mkPL = Item . mkL
+
+-- Whitespace
+pattern NoW x <- ((\v -> if null $ getWhite v then Just v else Nothing) -> Just x)
+
+
 
 
 nl = Item $ Lexeme 0 0 "" "\n"
@@ -40,8 +47,6 @@ paren xs = case unsnoc xs of
     Just (xs,Item x) -> Paren (mkL "(") (xs `snoc` Item x{whitespace=""}) (mkL ")"){whitespace=whitespace x}
     _ -> Paren (mkL "(") xs (mkL ")")
 
-is x (Item y) = lexeme y == x
-is x _ = False
 
 getWhite (Item x) = whitespace x
 getWhite (Paren _ _ x) = whitespace x
@@ -71,8 +76,8 @@ continue op [] = []
 -- | Add the necessary extensions, imports and local definitions
 editAddPreamble :: [PL] -> [PL]
 editAddPreamble o@xs
-    | (premodu, modu:modname@xs) <- break (is "module") xs
-    , (prewhr, whr:xs) <- break (is "where") xs
+    | (premodu, modu:modname@xs) <- break (isPL "module") xs
+    , (prewhr, whr:xs) <- break (isPL "where") xs
     = mkPL prefix : nl : premodu ++ modu : prewhr ++ whr : nl : mkPL imports : nl : xs ++ [nl, mkPL $ trailing modname, nl]
     | otherwise = mkPL prefix : nl : mkPL imports : nl : xs ++ [nl, mkPL $ trailing [], nl]
     where
@@ -90,10 +95,8 @@ editAddPreamble o@xs
 
 -- | a.b.c ==> getField @'(b,c) a
 editSelectors :: [PL] -> [PL]
-editSelectors (x:dot:field:rest)
-    | null $ getWhite x, null $ getWhite dot
-    , is "." dot
-    , isField field
+editSelectors (NoW x:NoW (PL "."):field:rest)
+    | isField field
     , not $ isCtor x
     = editSelectors $
         paren ([mkPL "Z.getField", spc, mkPL (makeField [field]), spc] ++ editSelectors [x]) :
@@ -118,7 +121,7 @@ renderUpdate (Update e upd) = case unsnoc upd of
         ,mkPL $ makeField field
         ,spc] ++
         renderUpdate (Update e rest) ++
-        [paren $ [if is "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
+        [paren $ [if isPL "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
 
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
 editUpdates :: [PL] -> [PL]
@@ -127,18 +130,18 @@ editUpdates (e:xs)
     , (fields, xs) <- spanFields1 xs
     , Paren brace inner end:xs <- xs
     , lexeme brace == "{"
-    , Just updates <- mapM f $ split (is ",") inner
+    , Just updates <- mapM f $ split (isPL ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
     = paren (renderUpdate (Update (paren $ editUpdates (e : fields)) updates)) : end2 ++ editUpdates xs
     where
         spanFields1 (x:y:xs)
-            | null $ getWhite x, is "." x
+            | null $ getWhite x, isPL "." x
             , isField y
             = first ([x,y] ++) $ spanFields1 xs
         spanFields1 xs = ([], xs)
 
         spanFields2 (x:y:xs)
-            | null $ getWhite x, is "." x
+            | null $ getWhite x, isPL "." x
             , isField y
             = first (y:) $ spanFields2 xs
         spanFields2 xs = ([], xs)
@@ -147,7 +150,7 @@ editUpdates (e:xs)
             | isField field1
             , (fields, xs) <- spanFields2 xs
             , op:xs <- xs
-            = Just (field1:fields, if is "=" op then Nothing else Just op, paren xs)
+            = Just (field1:fields, if isPL "=" op then Nothing else Just op, paren xs)
         f xs = Nothing
 editUpdates xs = continue editUpdates xs
 
