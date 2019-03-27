@@ -7,7 +7,6 @@ import Paren
 import Data.Maybe
 import Data.Char
 import Data.List.Extra
-import Data.Tuple.Extra
 import Control.Monad.Extra
 
 
@@ -55,16 +54,12 @@ setWhite w (Paren x y z) = Paren x y z{whitespace=w}
 isCtor (Item x) = any isUpper $ take 1 $ lexeme x
 isCtor _ = False
 
-isField (Item x) = all (isLower ||^ (== '_')) $ take 1 $ lexeme x
+isField (x:_) = x == '_' || isLower x
 isField _ = False
 
 makeField :: [String] -> String
 makeField [x] = "@" ++ show x
 makeField xs = "@'(" ++ intercalate "," (map show xs) ++ ")"
-
-makeFieldOld :: [PL] -> String
-makeFieldOld [x] = "@" ++ show (concatMap lexeme $ unparen x)
-makeFieldOld xs = "@'(" ++ intercalate "," (map (show . concatMap lexeme . unparen) xs) ++ ")"
 
 
 ---------------------------------------------------------------------
@@ -94,7 +89,7 @@ editAddPreamble o@xs
 spanFields :: [PL] -> Maybe (PL, [String], String, [PL])
 spanFields (NoW e:xs) = let (a,b,c) = f xs in if null a then Nothing else Just (e,a,b,c)
     where
-        f (NoW (PL "."):x@(PL (fld@(fld1:_))):xs) | fld1 == '_' || isLower fld1 = (\(a,b,c) -> (fld:a,b,c)) $
+        f (NoW (PL "."):x@(PL fld):xs) | isField fld = (\(a,b,c) -> (fld:a,b,c)) $
             case x of NoW{} -> f xs; _ -> ([], getWhite x, xs)
         f xs = ([], "", xs)
 spanFields _ = Nothing
@@ -107,25 +102,23 @@ editLoop (spanFields -> Just (e, fields, whitespace, rest))
     | not $ isCtor e
     = editLoop $ (addWhite whitespace $ paren [spc $ mkPL "Z.getField", spc $ mkPL (makeField fields), e]) : rest
 
--- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
+-- e{b.c=d, ...} ==> setField @'(b,c) d
 editLoop (e:Paren (L "{") inner end:xs)
     | not $ isCtor e
     , Just updates <- mapM f $ split (isPL ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
-    = editLoop $ paren (renderUpdate (Update e updates)) : end2 ++ xs
+    = editLoop $ renderUpdate (Update e updates) : end2 ++ xs
     where
-        spanFields2 (x:y:xs)
-            | null $ getWhite x, isPL "." x
-            , isField y
-            = first (y:) $ spanFields2 xs
-        spanFields2 xs = ([], xs)
-
-        f (field1:xs)
+        f (spanFields -> Just (PL field1, fields, whitespace, xs))
             | isField field1
-            , (fields, xs) <- spanFields2 xs
-            , op:xs <- xs
-            = Just (field1:fields, if isPL "=" op then Nothing else Just op, paren xs)
-        f xs = Nothing
+            = g (field1:fields) xs
+        f (x@(PL field1):xs)
+            | isField field1
+            = g [field1] xs
+        f _ = Nothing
+
+        g fields (op:xs) = Just (fields, if isPL "=" op then Nothing else Just op, paren xs)
+
 
 editLoop (Paren a b c:xs) = Paren a (editLoop b) c : editLoop xs
 editLoop (x:xs) = x : editLoop xs
@@ -135,19 +128,21 @@ editLoop [] = []
 ---------------------------------------------------------------------
 -- UPDATES
 
-type Field = PL -- passes isField, has had atField applied
 data Update = Update
-    (PL) -- The expression being updated
-    [([Field], Maybe (PL), PL)] -- (fields, operator, body)
+    PL -- The expression being updated
+    [([String], Maybe PL, PL)] -- (fields, operator, body)
 
-renderUpdate :: Update -> [PL]
+renderUpdate :: Update -> PL
 renderUpdate (Update e upd) = case unsnoc upd of
-    Nothing -> [e]
-    Just (rest, (field, operator, body)) -> return $ paren $
+    Nothing -> e
+    Just (rest, (field, operator, body)) -> paren $
         [spc $ mkPL $ if isNothing operator then "Z.setField" else "Z.modifyField"
-        ,spc $ mkPL $ makeFieldOld field] ++
-        renderUpdate (Update e rest) ++
-        [paren $ [if isPL "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc $ mkPL "", body]]
+        ,spc $ mkPL $ makeField field
+        ,spc (renderUpdate (Update e rest))
+        ,case operator of
+            Just o -> paren $ [spc $ if isPL "-" o then mkPL "subtract" else o, body]
+            _ -> body
+        ]
 
 
 ---------------------------------------------------------------------
