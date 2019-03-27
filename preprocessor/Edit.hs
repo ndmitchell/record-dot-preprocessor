@@ -11,30 +11,24 @@ import Data.Tuple.Extra
 import Control.Monad.Extra
 
 
-edit :: [Paren Lexeme] -> [Paren Lexeme]
+edit :: [PL] -> [PL]
 edit = editAddPreamble . editAddInstances . editSelectors . editUpdates
 
 
 ---------------------------------------------------------------------
 -- HELPERS
 
-pattern PL :: String -> Paren Lexeme
-pattern PL x <- (unPL -> Just x) where
-    PL x = Item $ L x
+type L = Lexeme
+unL = lexeme
+mkL x = Lexeme 0 0 x ""
+pattern L x <- (unL -> x)
 
-isPL :: String -> Paren Lexeme -> Bool
-isPL x y = unPL y == Just x
-
-unPL :: Paren Lexeme -> Maybe String
+type PL = Paren L
 unPL (Item (L x)) = Just x
 unPL _ = Nothing
-
-pattern L :: String -> Lexeme
-pattern L x <- (unL -> x) where
-    L x = Lexeme 0 0 x ""
-
-unL :: Lexeme -> String
-unL = lexeme
+isPL x y = unPL y == Just x
+pattern PL x <- (unPL -> Just x)
+mkPL = Item . mkL
 
 
 nl = Item $ Lexeme 0 0 "" "\n"
@@ -43,8 +37,8 @@ spc = Item $ Lexeme 0 0 "" " "
 
 paren [x] = x
 paren xs = case unsnoc xs of
-    Just (xs,Item x) -> Paren (L "(") (xs `snoc` Item x{whitespace=""}) (L ")"){whitespace=whitespace x}
-    _ -> Paren (L "(") xs (L ")")
+    Just (xs,Item x) -> Paren (mkL "(") (xs `snoc` Item x{whitespace=""}) (mkL ")"){whitespace=whitespace x}
+    _ -> Paren (mkL "(") xs (mkL ")")
 
 is x (Item y) = lexeme y == x
 is x _ = False
@@ -61,7 +55,7 @@ isCtor _ = False
 isField (Item x) = all (isLower ||^ (== '_')) $ take 1 $ lexeme x
 isField _ = False
 
-makeField :: [Paren Lexeme] -> String
+makeField :: [PL] -> String
 makeField [x] = "@" ++ show (concatMap lexeme $ unparen x)
 makeField xs = "@'(" ++ intercalate "," (map (show . concatMap lexeme . unparen) xs) ++ ")"
 
@@ -75,12 +69,12 @@ continue op [] = []
 -- PREAMBLE
 
 -- | Add the necessary extensions, imports and local definitions
-editAddPreamble :: [Paren Lexeme] -> [Paren Lexeme]
+editAddPreamble :: [PL] -> [PL]
 editAddPreamble o@xs
     | (premodu, modu:modname@xs) <- break (is "module") xs
     , (prewhr, whr:xs) <- break (is "where") xs
-    = PL prefix : nl : premodu ++ modu : prewhr ++ whr : nl : PL imports : nl : xs ++ [nl, PL $ trailing modname, nl]
-    | otherwise = PL prefix : nl : PL imports : nl : xs ++ [nl, PL $ trailing [], nl]
+    = mkPL prefix : nl : premodu ++ modu : prewhr ++ whr : nl : mkPL imports : nl : xs ++ [nl, mkPL $ trailing modname, nl]
+    | otherwise = mkPL prefix : nl : mkPL imports : nl : xs ++ [nl, mkPL $ trailing [], nl]
     where
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, OverloadedLabels #-}"
         imports = "import qualified GHC.Records.Extra as Z"
@@ -95,39 +89,39 @@ editAddPreamble o@xs
 -- SELECTORS
 
 -- | a.b.c ==> getField @'(b,c) a
-editSelectors :: [Paren Lexeme] -> [Paren Lexeme]
+editSelectors :: [PL] -> [PL]
 editSelectors (x:dot:field:rest)
     | null $ getWhite x, null $ getWhite dot
     , is "." dot
     , isField field
     , not $ isCtor x
     = editSelectors $
-        paren ([PL "Z.getField", spc, PL (makeField [field]), spc] ++ editSelectors [x]) :
-        [setWhite (getWhite field) (PL "") | getWhite field /= ""] ++ rest
+        paren ([mkPL "Z.getField", spc, mkPL (makeField [field]), spc] ++ editSelectors [x]) :
+        [setWhite (getWhite field) (mkPL "") | getWhite field /= ""] ++ rest
 editSelectors xs = continue editSelectors xs
 
 
 ---------------------------------------------------------------------
 -- UPDATES
 
-type Field = Paren Lexeme -- passes isField, has had atField applied
+type Field = PL -- passes isField, has had atField applied
 data Update = Update
-    (Paren Lexeme) -- The expression being updated
-    [([Field], Maybe (Paren Lexeme), Paren Lexeme)] -- (fields, operator, body)
+    (PL) -- The expression being updated
+    [([Field], Maybe (PL), PL)] -- (fields, operator, body)
 
-renderUpdate :: Update -> [Paren Lexeme]
+renderUpdate :: Update -> [PL]
 renderUpdate (Update e upd) = case unsnoc upd of
     Nothing -> [e]
     Just (rest, (field, operator, body)) -> return $ paren $
-        [PL $ if isNothing operator then "Z.setField" else "Z.modifyField"
+        [mkPL $ if isNothing operator then "Z.setField" else "Z.modifyField"
         ,spc
-        ,PL $ makeField field
+        ,mkPL $ makeField field
         ,spc] ++
         renderUpdate (Update e rest) ++
-        [paren $ [if is "-" o then PL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
+        [paren $ [if is "-" o then mkPL "subtract" else o | Just o <- [operator]] ++ [spc, body]]
 
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
-editUpdates :: [Paren Lexeme] -> [Paren Lexeme]
+editUpdates :: [PL] -> [PL]
 editUpdates (e:xs)
     | not $ isCtor e
     , (fields, xs) <- spanFields1 xs
@@ -161,8 +155,8 @@ editUpdates xs = continue editUpdates xs
 ---------------------------------------------------------------------
 -- INSTANCES
 
-editAddInstances :: [Paren Lexeme] -> [Paren Lexeme]
-editAddInstances xs = xs ++ concatMap (\x -> [nl, PL x])
+editAddInstances :: [PL] -> [PL]
+editAddInstances xs = xs ++ concatMap (\x -> [nl, mkPL x])
     [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
       "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ ":: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
     | Record rname rargs fields <- parseRecords xs
@@ -184,10 +178,10 @@ data Record = Record
     deriving Show
 
 -- | Find all the records and parse them
-parseRecords :: [Paren Lexeme] -> [Record]
+parseRecords :: [PL] -> [Record]
 parseRecords = mapMaybe whole . drop 1 . split (isPL "data" ||^ isPL "newtype")
     where
-        whole :: [Paren Lexeme] -> Maybe Record
+        whole :: [PL] -> Maybe Record
         whole xs
             | PL typeName : xs <- xs
             , (typeArgs, _:xs) <- break (isPL "=") xs
