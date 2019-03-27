@@ -101,19 +101,12 @@ editLoop (NoW x:NoW (PL "."):field:rest)
 -- e.a{b.c=d, ...} ==> e . #a & #b . #c .~ d & ...
 editLoop (e:xs)
     | not $ isCtor e
-    , (fields, xs) <- spanFields1 xs
     , Paren brace inner end:xs <- xs
     , lexeme brace == "{"
     , Just updates <- mapM f $ split (isPL ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
-    = editLoop $ paren (renderUpdate (Update (paren $ e : fields) updates)) : end2 ++ xs
+    = editLoop $ paren (renderUpdate (Update e updates)) : end2 ++ xs
     where
-        spanFields1 (x:y:xs)
-            | null $ getWhite x, isPL "." x
-            , isField y
-            = first ([x,y] ++) $ spanFields1 xs
-        spanFields1 xs = ([], xs)
-
         spanFields2 (x:y:xs)
             | null $ getWhite x, isPL "." x
             , isField y
