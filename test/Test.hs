@@ -10,8 +10,10 @@ import System.Environment
 import System.FilePath
 import Control.Monad
 import System.IO.Extra
+import System.Info
 import System.Process.Extra
 import Data.List
+import Data.Version
 
 
 main :: IO ()
@@ -31,7 +33,7 @@ main = do
                       ,("Plugin", "{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}\n" ++
                                   "{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds #-}")] $ \(name,prefix) -> do
                     withTempDir $ \dir ->
-                        when (name /= "Plugin" || takeBaseName file /= "Complex") $ do
+                        when (compilerVersion > makeVersion [8,6] && (name /= "Plugin" || takeBaseName file /= "Preprocessor")) $ do
                             putStrLn $ "# " ++ name ++ " " ++ takeFileName file
                             writeFile (dir </> takeFileName file) $ prefix ++ "\n" ++ src
                             system_ $ "runhaskell -package=record-dot-preprocessor " ++ dir </> takeFileName file

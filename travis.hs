@@ -2,4 +2,4 @@
 import System.Process.Extra
 
 main =
-    system_ "record-dot-preprocessor-test --installed"
+    system_ "ghc -e \":test --installed\""
