@@ -7,6 +7,9 @@
 module Main(main) where
 
 import Control.Exception
+import Data.Function
+import Data.Char
+
 
 fails :: a -> IO ()
 fails val = do
@@ -63,6 +66,11 @@ test2 = do
 
     let person = Person 10 "Home"
     (person{age - 3}){age * 2} === person{age = 14}
+
+    -- check for puns
+    let human = Human "x" "y"
+    human{foo1.the_b.job} === Human "x" "b"
+    human{foo1.the_b.job, name & map toUpper} === Human "X" "b"
 
 
 main :: IO ()

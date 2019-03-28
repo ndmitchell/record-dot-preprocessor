@@ -30,6 +30,7 @@ test1 = do
     foo {foo1 = "a", foo1 = "b"} === foo{foo1 = "b"}
     null (foo{foo1 = []}.foo1) === True
     foo{foo1 = "a"}.foo1 === "a"
+    let _foo2 = 8 in foo{_foo2} === Foo "test" 8
 
     -- (.lbl)
     map (.foo1) [foo, foo{foo1="q"}] === ["test", "q"]

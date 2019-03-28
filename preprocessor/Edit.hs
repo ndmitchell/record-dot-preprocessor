@@ -118,7 +118,8 @@ editLoop (e:Paren (L "{") inner end:xs)
             = g [field1] xs
         f _ = Nothing
 
-        g fields (op:xs) = Just (fields, if isPL "=" op then Nothing else Just op, paren xs)
+        g fields (op:xs) = Just (fields, if isPL "=" op then Nothing else Just op, Just $ paren xs)
+        g fields [] = Just (fields, Nothing, Nothing)
 
 
 editLoop (Paren a b c:xs) = Paren a (editLoop b) c : editLoop xs
@@ -131,18 +132,22 @@ editLoop [] = []
 
 data Update = Update
     PL -- The expression being updated
-    [([String], Maybe PL, PL)] -- (fields, operator, body)
+    [([String], Maybe PL, Maybe PL)] -- (fields, operator, body)
 
 renderUpdate :: Update -> PL
 renderUpdate (Update e upd) = case unsnoc upd of
     Nothing -> e
     Just (rest, (field, operator, body)) -> paren
         [spc $ mkPL $ if isNothing operator then "Z.setField" else "Z.modifyField"
-        ,spc $ mkPL $ makeField field
+        ,spc $ mkPL $ makeField $ if isNothing body then [last field] else field
         ,spc (renderUpdate (Update e rest))
-        ,case operator of
-            Just o -> paren [spc $ if isPL "-" o then mkPL "subtract" else o, body]
-            _ -> body
+        ,case (operator, body) of
+            (Just o, Just b) -> paren [spc $ if isPL "-" o then mkPL "subtract" else o, b]
+            (Nothing, Just b) -> b
+            (Nothing, Nothing)
+                | [field] <- field -> mkPL field
+                | f1:fs <- field -> paren [spc $ mkPL "Z.getField", spc $ mkPL $ makeField fs, mkPL f1]
+            _ -> error "renderUpdate, internal error"
         ]
 
 
