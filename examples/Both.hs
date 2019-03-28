@@ -2,7 +2,7 @@
 
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults #-} -- can we produce -Wall clean code
 
-main = test1 >> test2
+main = test1 >> test2 >> putStrLn "Both worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b

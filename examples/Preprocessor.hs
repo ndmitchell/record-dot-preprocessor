@@ -66,4 +66,4 @@ test2 = do
 
 
 main :: IO ()
-main = test1 >> test2 >> putStrLn "Complex example worked"
+main = test1 >> test2 >> putStrLn "Preprocessor worked"
