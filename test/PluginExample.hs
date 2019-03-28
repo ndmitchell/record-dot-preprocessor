@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 
-#if __GLASGOW_HASKELL__ < 807
+#if __GLASGOW_HASKELL__ < 806
 
 module PluginExample where
 main :: IO ()
