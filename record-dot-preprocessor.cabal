@@ -35,6 +35,15 @@ library
         uniplate,
         ghc,
         extra
+    if impl(ghc < 8.6)
+        buildable: False
+    else
+        if impl(ghc < 8.7)
+            other-modules:
+                GHC_8_6
+        else
+            other-modules:
+                GHC_HEAD
     exposed-modules:
         RecordDotPreprocessor
 
@@ -62,8 +71,10 @@ test-suite record-dot-preprocessor-test
         base == 4.*,
         extra,
         record-hasfield,
-        record-dot-preprocessor,
         filepath
+    if impl(ghc >= 8.6)
+        build-depends:
+            record-dot-preprocessor
     other-modules:
         PluginExample
         Preprocessor
