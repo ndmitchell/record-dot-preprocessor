@@ -157,7 +157,7 @@ renderUpdate (Update e upd) = case unsnoc upd of
 editAddInstances :: [PL] -> [PL]
 editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
     [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
-      "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ ":: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
+      "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ " :: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
     | Record rname rargs fields <- parseRecords xs
     , let rtyp = "(" ++ unwords (rname : rargs) ++ ")"
     , (fname, ftyp) <- fields
