@@ -33,7 +33,7 @@ main = do
                       ,("Plugin", "{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}\n" ++
                                   "{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds #-}")] $ \(name,prefix) -> do
                     withTempDir $ \dir ->
-                        when (compilerVersion > makeVersion [8,6] && (name /= "Plugin" || takeBaseName file /= "Preprocessor")) $ do
+                        when (compilerVersion >= makeVersion [8,6] && not (blacklist name (takeBaseName file))) $ do
                             putStrLn $ "# " ++ name ++ " " ++ takeFileName file
                             writeFile (dir </> takeFileName file) $ prefix ++ "\n" ++ src
                             system_ $ "runhaskell -package=record-dot-preprocessor " ++ dir </> takeFileName file
@@ -43,3 +43,7 @@ main = do
                 withArgs [file,file,out] Preprocessor.main
                 system_ $ "runhaskell " ++ out
     putStrLn "Success"
+
+-- Blacklist tests we know aren't compatible
+blacklist "Plugin" "Preprocessor" = True
+blacklist _ _ = False
