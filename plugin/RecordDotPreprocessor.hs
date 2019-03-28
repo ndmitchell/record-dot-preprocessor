@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 
+-- | Preprocessor to make record-dot syntax.
 module RecordDotPreprocessor(plugin) where
 
 #if __GLASGOW_HASKELL__ < 807
