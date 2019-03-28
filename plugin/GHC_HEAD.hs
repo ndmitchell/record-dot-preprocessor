@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards, ViewPatterns #-}
 
 module GHC_HEAD(plugin) where
 
@@ -88,14 +89,12 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
                     { m_ext     = noE
                     , m_ctxt    = FunRhs (noL var_hasField) GHC.Prefix NoSrcStrict
                     , m_pats    = [VarPat noE $ noL vR]
-                    , m_rhs_sig = Nothing
                     , m_grhss   = GRHSs noE [noL $ GRHS noE [] $ noL $ ExplicitTuple noE [noL $ Present noE set, noL $ Present noE get] GHC.Boxed] (noL $ EmptyLocalBinds noE)
                     }
                 set = noL $ HsLam noE $ mg1 Match
                     { m_ext     = noE
                     , m_ctxt    = LambdaExpr
                     , m_pats    = [VarPat noE $ noL vX]
-                    , m_rhs_sig = Nothing
                     , m_grhss   = GRHSs noE [noL $ GRHS noE [] $ noL update] (noL $ EmptyLocalBinds noE)
                     }
                 update = RecordUpd noE (noL $ GHC.HsVar noE $ noL vR)
