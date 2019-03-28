@@ -3,6 +3,7 @@ module GHC_HEAD(plugin) where
 
 import qualified GhcPlugins  as GHC
 
+-- | GHC plugin.
 plugin :: GHC.Plugin
 plugin = GHC.defaultPlugin
     { GHC.parsedResultAction = \_cliOptions -> pluginImpl

@@ -18,6 +18,7 @@ var_getField = GHC.mkRdrQual mod_ghc_records $ GHC.mkVarOcc "getField"
 var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
 
+-- | GHC plugin.
 plugin :: GHC.Plugin
 plugin = GHC.defaultPlugin
     { GHC.parsedResultAction = \_cliOptions -> pluginImpl
