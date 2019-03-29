@@ -1,7 +1,9 @@
 -- Test for everything that is supported by both the plugin and the preprocessor
 
-{-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults #-} -- can we produce -Wall clean code
+{-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures #-} -- can we produce -Wall clean code
+{-# LANGUAGE PartialTypeSignatures #-} -- also tests we put language extensions before imports
 
+main :: IO ()
 main = test1 >> test2 >> putStrLn "Both worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
@@ -63,6 +65,7 @@ f x _ = x
 
 infixl 9 @+
 infixr 9 +@
+(@+), (+@) :: _
 (@+) = (,)
 (+@) = (,)
 
