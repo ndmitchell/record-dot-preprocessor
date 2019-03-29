@@ -20,7 +20,7 @@ import           TcEvidence
 -- | GHC plugin.
 plugin :: GHC.Plugin
 plugin = GHC.defaultPlugin
-    { GHC.parsedResultAction = \_cliOptions _modSummary -> return . onModule
+    { GHC.parsedResultAction = \_cliOptions _modSummary x -> return x{GHC.hpm_module = onModule <$> GHC.hpm_module x}
     , GHC.pluginRecompile = GHC.purePlugin
     }
 
