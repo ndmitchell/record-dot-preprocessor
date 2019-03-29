@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, ViewPatterns #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns #-}
 
 module GHC_HEAD(plugin) where
 
