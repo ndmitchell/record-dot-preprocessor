@@ -17,6 +17,7 @@ main = return ()
 
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor -w #-}
 {-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE PartialTypeSignatures #-} -- because it's now treated as a comment
 module PluginExample where
 #include "../examples/Both.hs"
 
