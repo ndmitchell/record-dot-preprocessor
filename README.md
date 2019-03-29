@@ -20,7 +20,7 @@ Here we declare two records both with `name` as a field, then write `c.name` and
 First install `record-dot-preprocessor` with either `stack install record-dot-preprocessor` or `cabal update && cabal install record-dot-preprocessor`. Then at the top of the file add:
 
 * Either: `{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}` for the preprocessor.
-* Or: `{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}` and `{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds #-}` for the GHC plugin.
+* Or: `{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}` and `{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances #-}` for the GHC plugin.
 
 The GHC plugin only runs on GHC 8.6 or higher, doesn't work on Windows, has better error messages and is less likely to break your source file. In contrast, the preprocessor runs everywhere and has more features.
 

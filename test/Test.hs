@@ -31,8 +31,8 @@ main = do
                 src <- readFile' file
                 forM_ [("Preprocessor", "{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}")
                       ,("Plugin", "{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}\n" ++
-                                  "{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds #-}")] $ \(name,prefix) -> do
-                    withTempDir $ \dir ->
+                                  "{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances #-}")] $
+                    \(name,prefix) -> withTempDir $ \dir ->
                         when (compilerVersion >= makeVersion [8,6] && not (blacklist name (takeBaseName file))) $ do
                             putStrLn $ "# " ++ name ++ " " ++ takeFileName file
                             writeFile (dir </> takeFileName file) $ prefix ++ "\n" ++ src
