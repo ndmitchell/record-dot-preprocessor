@@ -91,7 +91,7 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
                     }
                 update = RecordUpd noE (noL $ GHC.HsVar noE $ noL vR)
                     [noL $ HsRecField (noL (Unambiguous noE (rdrNameFieldOcc selector))) (noL $ GHC.HsVar noE $ noL vX) False]
-                get = mkApp (mkParen $ noL $ ExprWithTySig noE (noL $ GHC.HsVar noE $ noL vR) (HsWC noE getType)) (noL $ GHC.HsVar noE $ noL vR)
+                get = mkApp (mkParen $ noL $ ExprWithTySig noE (noL $ GHC.HsVar noE $ rdrNameFieldOcc selector) (HsWC noE getType)) (noL $ GHC.HsVar noE $ noL vR)
                 getType = HsIB noE $ noL $ HsFunTy noE (noL record) (noL field)
 
         mg1 :: Match GhcPs (LHsExpr GhcPs) -> MatchGroup GhcPs (LHsExpr GhcPs)
