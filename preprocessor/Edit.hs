@@ -71,8 +71,10 @@ editAddPreamble o@xs
     | (premodu, modu:modname@xs) <- break (isPL "module") xs
     , (prewhr, whr:xs) <- break (isPL "where") xs
     = nl (mkPL prefix) : premodu ++ modu : prewhr ++ whr : nl (mkPL "") : nl (mkPL imports) : xs ++ [nl $ mkPL "", nl $ mkPL $ trailing modname]
-    | otherwise = nl (mkPL prefix) : nl (mkPL imports) : xs ++ [nl $ mkPL "", nl $ mkPL $ trailing []]
+    | otherwise = blanks ++ nl (mkPL prefix) : nl (mkPL imports) : rest ++ [nl $ mkPL "", nl $ mkPL $ trailing []]
     where
+        (blanks, rest) = span (isPL "") o
+
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, OverloadedLabels #-}"
         imports = "import qualified GHC.Records.Extra as Z"
         -- if you import two things that have preprocessor_unused, and export them as modules, you don't want them to clash

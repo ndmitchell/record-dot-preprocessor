@@ -26,8 +26,16 @@ charIdentCont x = isAlphaNum x || x == '_' || x == '\''
 
 
 lexer :: String -> [Lexeme]
-lexer = go 1 1
+lexer = go1 1 1
     where
+        -- we might start with whitespace, before any lexemes
+        go1 line col xs
+            | (whitespace, xs) <- lexerWhitespace xs
+            , whitespace /= ""
+            , (line2, col2) <- reposition line col whitespace
+            = Lexeme{lexeme="", ..} : go line2 col2 xs
+        go1 line col xs = go line col xs
+
         go line col "" = []
         go line col xs
             | (lexeme, xs) <- lexerLexeme xs
