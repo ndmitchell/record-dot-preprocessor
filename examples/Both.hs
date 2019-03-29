@@ -42,7 +42,8 @@ test1 = do
 ---------------------------------------------------------------------
 -- DEAL WITH INFIX APPLICATIONS AND ASSOCIATIVITY
 
-data Company = Company {name :: String, owner :: Person}
+data Company = Company {name :: String, owner :: Person -- trailing comment
+    }
 data Person = Person {name :: String, age :: Int}
 
 test2 :: IO ()

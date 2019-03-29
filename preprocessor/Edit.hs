@@ -200,3 +200,6 @@ parseRecords = mapMaybe whole . drop 1 . split (isPL "data" ||^ isPL "newtype")
         fields ((x,[]):(y,z):rest) = fields $ (x++y,z):rest
         fields ((names, _:typ):rest) = [(name, dropWhile (== '!') $ trim $ unlexer $ unparens typ) | PL name <- names] ++ fields rest
         fields _ = []
+
+        -- if the user has a trailing comment want to rip it out so our brackets still work
+        unlexer = concatMap $ \x -> lexeme x ++ [' ' | whitespace x /= ""]

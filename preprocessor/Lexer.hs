@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards, BangPatterns #-}
 
 -- Most of this module follows the Haskell report, https://www.haskell.org/onlinereport/lexemes.html
-module Lexer(Lexeme(..), lexer, unlexer, unlexerFile) where
+module Lexer(Lexeme(..), lexer, unlexerFile) where
 
 import Data.Char
 import Data.List
@@ -92,10 +92,6 @@ lexerWhitespace ('{':'-':xs) = seen "{-" $ f 1 xs
 lexerWhitespace xs = ([], xs)
 
 seen xs = first (xs++)
-
-
-unlexer :: [Lexeme] -> String
-unlexer = concatMap $ \x -> lexeme x ++ whitespace x
 
 
 unlexerFile :: FilePath -> [Lexeme] -> String
