@@ -103,10 +103,14 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
 
 onDecl :: LHsDecl GhcPs -> [LHsDecl GhcPs]
 onDecl o@(L _ (GHC.TyClD _ x)) = o :
-    [ noL $ InstD noE $ instanceTemplate field (unLoc record) typ
+    [ noL $ InstD noE $ instanceTemplate field (unLoc record) (unbang typ)
     | let fields = nubOrdOn (\(_,_,x,_) -> GHC.occNameFS $ GHC.rdrNameOcc $ unLoc $ rdrNameFieldOcc x) $ getFields x
     , (record, _, field, typ) <- fields]
 onDecl x = [descendBi onExp x]
+
+unbang :: HsType GhcPs -> HsType GhcPs
+unbang (HsBangTy _ _ x) = unLoc x
+unbang x = x
 
 getFields :: TyClDecl GhcPs -> [(LHsType GhcPs, IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
 getFields DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_cons
