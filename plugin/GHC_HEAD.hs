@@ -91,7 +91,7 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
                     }
                 update = RecordUpd noE (noL $ GHC.HsVar noE $ noL vR)
                     [noL $ HsRecField (noL (Unambiguous noE (rdrNameFieldOcc selector))) (noL $ GHC.HsVar noE $ noL vX) False]
-                get = mkApp (mkParen $ noL $ ExprWithTySig noE (noL $ GHC.HsVar noE $ noL vX) (HsWC noE getType)) (noL $ GHC.HsVar noE $ noL vR)
+                get = mkApp (mkParen $ noL $ ExprWithTySig noE (noL $ GHC.HsVar noE $ noL vR) (HsWC noE getType)) (noL $ GHC.HsVar noE $ noL vR)
                 getType = HsIB noE $ noL $ HsFunTy noE (noL record) (noL field)
 
         mg1 :: Match GhcPs (LHsExpr GhcPs) -> MatchGroup GhcPs (LHsExpr GhcPs)
@@ -154,7 +154,7 @@ onExp (L _ RecordUpd{rupd_expr,rupd_flds=[]}) = onExp rupd_expr
 onExp (L o upd@RecordUpd{rupd_expr,rupd_flds=L _ (HsRecField (fmap rdrNameAmbiguousFieldOcc -> lbl) arg pun):flds})
     | let sel = mkSelector lbl
     , let arg2 = if pun then noL $ HsVar noE lbl else arg
-    , let expr = mkParen $ mkVar var_setField `mkAppType` sel `mkApp` arg2 `mkApp` mkParen rupd_expr
+    , let expr = mkParen $ mkVar var_setField `mkAppType` sel `mkApp` mkParen rupd_expr `mkApp` arg2
     = onExp $ L o upd{rupd_expr=expr,rupd_flds=flds}
 
 onExp x = descend onExp x
