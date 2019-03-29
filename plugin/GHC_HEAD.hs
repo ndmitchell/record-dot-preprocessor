@@ -8,7 +8,6 @@ import           Data.Tuple.Extra
 import           Bag
 import qualified GHC
 import qualified GhcPlugins as GHC
-import           HsExtension (GhcPs)
 import           HsSyn
 import           SrcLoc
 import           TcEvidence
@@ -47,9 +46,6 @@ var_getField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "getField"
 var_setField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "setField"
 var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
-
-recordDotPreprocessor :: GHC.ParsedSource -> GHC.ParsedSource
-recordDotPreprocessor = fmap onModule
 
 onModule :: HsModule GhcPs -> HsModule GhcPs
 onModule x = x { hsmodImports = onImports $ hsmodImports x
