@@ -25,8 +25,8 @@ main = do
     unless installed $ do
         putStrLn "# Plugin Example.hs"
         PluginExample.main
-    forM_ (reverse files) $ \file -> do
-        when (takeExtension file == ".hs" && not ("_out.hs" `isSuffixOf` file)) $ do
+    forM_ (reverse files) $ \file ->
+        when (takeExtension file == ".hs" && not ("_out.hs" `isSuffixOf` file)) $
             if installed then do
                 src <- readFile' file
                 forM_ [("Preprocessor", "{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}")

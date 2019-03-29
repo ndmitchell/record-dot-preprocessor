@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns #-}
+{- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
 module RecordDotPreprocessor(plugin) where

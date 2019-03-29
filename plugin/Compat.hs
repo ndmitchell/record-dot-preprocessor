@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, RecordWildCards, ViewPatterns, NamedFieldPuns #-}
+{-# LANGUAGE CPP #-}
+{- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
 module Compat(module Compat) where
