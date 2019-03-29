@@ -22,6 +22,8 @@ extra-doc-files:
 tested-with:        GHC==8.6.4, GHC==8.4.4, GHC==8.2.2
 extra-source-files:
     examples/Both.hs
+    examples/Preprocessor.hs
+    examples/Readme.hs
 
 source-repository head
     type:     git
