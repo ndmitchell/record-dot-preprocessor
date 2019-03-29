@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2, released 2019-03-29
     Add a GHC source plugin
     Support for e{foo.bar}
     Support for (.foo.bar)
