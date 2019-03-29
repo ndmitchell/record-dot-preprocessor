@@ -16,7 +16,7 @@ main = return ()
 #else
 
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor -w #-}
-{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances #-}
+{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}
 module PluginExample where
 #include "../examples/Both.hs"
 
