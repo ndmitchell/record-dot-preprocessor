@@ -2,6 +2,7 @@
 /.hpc/
 .stack-work/
 stack.yaml
+stack.yaml.lock
 examples/*_out.hs
 *.hi
 *.o
