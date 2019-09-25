@@ -1,5 +1,6 @@
 :set -fwarn-unused-binds -fwarn-unused-imports -fwarn-orphans
 :set -ipreprocessor -iplugin -itest
 :set -package=ghc
+:set -hide-package=ghc-lib-parser
 :load test/Test.hs
 :def test \x -> return $ ":main " ++ x
