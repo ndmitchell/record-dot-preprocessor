@@ -6,18 +6,10 @@
 -- can you deal with modules and existing extensions
 module Main(main) where
 
-import Control.Exception
 import Data.Function
 import Data.Char
 import Data.List
 
-
-fails :: a -> IO ()
-fails val = do
-    res <- try $ evaluate val
-    case res of
-        Left (_ :: SomeException) -> return ()
-        Right _ -> fail "Expected an exception"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
@@ -28,12 +20,6 @@ data Animal = Human {name :: !String, job :: Prelude.String}
             | Nonhuman {name :: String}
               deriving (Show,Eq)
 
-test1 :: IO ()
-test1 = do
-    (Human "a" "b").name === "a" -- comment here
-    (Nonhuman "x").name === "x"
-    fails (Nonhuman "x").job
-
 -- can you deal with polymorphism
 data Foo a b = Foo {name :: (a, Maybe b), the_b :: b, x :: Int}
     deriving (Show,Eq)
@@ -41,8 +27,8 @@ data Foo a b = Foo {name :: (a, Maybe b), the_b :: b, x :: Int}
 data Person = Person {age :: Int, address :: String}
     deriving (Show,Eq)
 
-test2 :: IO ()
-test2 = do
+test1 :: IO ()
+test1 = do
     let foo1 = Foo{name=(1, Nothing), the_b=Human "a" "b", x=1}
     let foo2 = Foo (19, Just 2) 2 1
     foo1.the_b.job === "b"
@@ -76,4 +62,4 @@ test2 = do
 
 
 main :: IO ()
-main = test1 >> test2 >> putStrLn "Preprocessor worked"
+main = test1 >> putStrLn "Preprocessor worked"

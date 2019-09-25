@@ -3,17 +3,32 @@
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures #-} -- can we produce -Wall clean code
 {-# LANGUAGE PartialTypeSignatures #-} -- also tests we put language extensions before imports
 
+import Control.Exception
+
 main :: IO ()
 main = test1 >> test2 >> putStrLn "Both worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
 
+fails :: a -> IO ()
+fails val = do
+    res <- try $ evaluate val
+    case res of
+        Left e -> let _ = e :: SomeException in return ()
+        Right _ -> fail "Expected an exception"
+
 
 ---------------------------------------------------------------------
 -- CHECK THE BASICS WORK
 
 data Foo a = Foo {foo1 :: !a, _foo2 :: Int} deriving (Show,Eq)
+
+-- can you deal with multiple alternatives
+data Animal = Human {name :: !String, job :: Prelude.String}
+            | Nonhuman {name :: String}
+              deriving (Show,Eq)
+
 
 test1 :: IO ()
 test1 = do
@@ -37,6 +52,11 @@ test1 = do
     -- (.lbl)
     map (.foo1) [foo, foo{foo1="q"}] === ["test", "q"]
     ( .foo1._foo2 ) (Foo foo 3) === 2
+
+    -- alternatives work
+    (Human "a" "b").name === "a" -- comment here
+    (Nonhuman "x").name === "x"
+    fails (Nonhuman "x").job
 
 
 ---------------------------------------------------------------------
