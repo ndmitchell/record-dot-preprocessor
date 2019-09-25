@@ -1,12 +1,12 @@
 -- Test for everything that is supported by both the plugin and the preprocessor
 
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures #-} -- can we produce -Wall clean code
-{-# LANGUAGE PartialTypeSignatures #-} -- also tests we put language extensions before imports
+{-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving #-} -- also tests we put language extensions before imports
 
 import Control.Exception
 
 main :: IO ()
-main = test1 >> test2 >> putStrLn "Both worked"
+main = test1 >> test2 >> test3 >> putStrLn "All worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
@@ -95,3 +95,25 @@ gL ((_,x),_) = x
 
 gR :: (Int, (String, Bool)) -> String
 gR (_,(x,_)) = x
+
+
+---------------------------------------------------------------------
+-- GADTS AND EXISTENTIALS
+
+data GADT where
+    GADT :: {gadt :: Int} -> GADT
+    deriving (Show,Eq)
+
+data V3 a = Num a => V3 { xx, yy, zz :: a }
+deriving instance Show a => Show (V3 a)
+deriving instance Eq a => Eq (V3 a)
+
+test3 :: IO ()
+test3 = do
+    let val = GADT 3
+    val.gadt === 3
+    val{gadt=5} === GADT 5
+
+    let v3 = V3 1 2 3
+    v3.xx === 1
+    v3{yy=1, zz=2} === V3 1 1 2

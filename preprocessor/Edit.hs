@@ -108,6 +108,7 @@ editLoop (Paren start@(L "(") (spanFields -> (fields@(_:_), whitespace, [])) end
 -- e{b.c=d, ...} ==> setField @'(b,c) d
 editLoop (e:Paren (L "{") inner end:xs)
     | not $ isCtor e
+    , not $ isPL "::" e
     , Just updates <- mapM f $ split (isPL ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
     = editLoop $ renderUpdate (Update e updates) : end2 ++ xs
@@ -185,17 +186,28 @@ parseRecords = mapMaybe whole . drop 1 . split (isPL "data" ||^ isPL "newtype")
         whole :: [PL] -> Maybe Record
         whole xs
             | PL typeName : xs <- xs
-            , (typeArgs, _:xs) <- break (isPL "=") xs
+            , (typeArgs, _:xs) <- break (isPL "=" ||^ isPL "where") xs
             = Just $ Record typeName [x | PL x <- typeArgs] $ nubOrd $ ctor xs
         whole _ = Nothing
 
         ctor xs
-            | PL ctorName : Paren (L "{") inner _ : xs <- xs
+            | xs <- dropContext xs
+            , PL ctorName : xs <- xs
+            , xs <- dropWhile (isPL "::") xs
+            , xs <- dropContext xs
+            , Paren (L "{") inner _ : xs <- xs
             = fields (map (break (isPL "::")) $ split (isPL ",") inner) ++
               case xs of
                 PL "|":xs -> ctor xs
                 _ -> []
         ctor _ = []
+
+        -- we don't use a full parser so dealing with context like
+        --   Num a => V3 { xx, yy, zz :: a }
+        -- is hard. Fake it as best we can
+        dropContext (Paren (L "(") _ _ : PL "=>" : xs) = xs
+        dropContext (_ : _  : PL "=>": xs) = xs
+        dropContext xs = xs
 
         fields ((x,[]):(y,z):rest) = fields $ (x++y,z):rest
         fields ((names, _:typ):rest) = [(name, dropWhile (== '!') $ trim $ unlexer $ unparens typ) | PL name <- names] ++ fields rest
