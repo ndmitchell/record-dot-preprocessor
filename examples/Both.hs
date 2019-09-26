@@ -6,7 +6,7 @@
 import Control.Exception
 
 main :: IO ()
-main = test1 >> test2 >> test3 >> putStrLn "All worked"
+main = test1 >> test2 >> test3 >> test4 >> putStrLn "All worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
@@ -117,3 +117,33 @@ test3 = do
     let v3 = V3 1 2 3
     v3.xx === 1
     v3{yy=1, zz=2} === V3 1 1 2
+
+-- ---------------------------------------------------------------------
+-- Another volley of tests combining constructions, updates and
+-- applications adapted from the DAML test-suite
+
+data AA = AA {xx :: Int} deriving (Eq, Show)
+data BB = BB {yy :: AA, zz :: AA} deriving (Eq, Show)
+data CC = CC {aa :: Int, bb :: Int} deriving (Eq, Show)
+
+test4 :: IO ()
+test4 = do
+  f1 CC{aa = 1, bb = 2} 3 4 === CC{aa = 3, bb = 4}
+  f2 CC{aa = 1, bb = 2} 1 2 === CC{aa = 3, bb = 2}
+  (f3 AA{xx = 1}).xx === 2
+  (f4 BB{yy = AA{xx = 1}, zz = AA{xx = 2}}).zz.xx === 4
+  let res = f4 BB{yy = AA{xx = 1}, zz = AA{xx = 2}} in res.zz.xx === 4
+  (f5 BB{yy = AA{xx = 1}, zz = AA{xx = 2}}).zz.xx === 4
+  (f6 BB{yy = AA{xx = 1}, zz = AA{xx = 2}}).yy.xx === 2
+  (f6 BB{yy = AA{xx = 1}, zz = AA{xx = 2}}).zz.xx === 4
+  f7 [AA 1, AA 2, AA 3] === [1, 2, 3]
+  f8 [BB (AA 1) (AA 2), BB (AA 2) (AA 3), BB (AA 3) (AA 4)] === [1, 2, 3]
+  where
+    f1 :: CC -> Int -> Int -> CC; f1 s t u = s {aa = t, bb = u}
+    f2 :: CC -> Int -> Int -> CC; f2 s t u = s {aa = t + u}
+    f3 :: AA -> AA; f3 s = s {xx = s.xx + 1}
+    f4 :: BB -> BB; f4 s = s {yy = s.yy, zz = s.zz{xx = 4}}
+    f5 :: BB -> BB; f5 s = s {yy = s.yy, zz = s.zz{xx = (\ x -> x * x) s.zz.xx}}
+    f6 :: BB -> BB; f6 s = s{yy = s.yy{xx = s.yy.xx + 1}, zz = s.zz{xx = (\ x -> x * x) s.zz{xx = s.zz.xx}.xx}}
+    f7 :: [AA] -> [Int]; f7 l = map (.xx) l
+    f8 :: [BB] -> [Int]; f8 l = map (.yy.xx) l
