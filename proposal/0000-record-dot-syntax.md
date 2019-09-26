@@ -12,15 +12,11 @@ the link, and delete this bold sentence.**
 
 # Record Dot Syntax
 
-The "dot operator" for record field selection is absolutely ubiquitous in modern programming languages. Here, we propose a language extension `RecordDotSyntax` that extends Haskell to support record field access via '.' syntax.
+Records in Haskell are [widely recognised](https://www.yesodweb.com/blog/2011/09/limitations-of-haskell) as being under-powered, with duplicate field names being particularly troublesome. We propose a new language extension `RecordDotSyntax` that provides syntactic sugar to make the features introduced in [the `HasField` proposal](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0158-record-set-field.rst) more accessible, improving the user experience.
 
 ## Motivation
 
-Languages that enable projection of a record component via '.' include Fortran, Ada, Pascal, C, C++, Java, OCaml, Erlang, Python and many, many more. The sheer prevalence of this notation is an overwhelming indicator that it suits the semantic of accessing an aggregate remarkably well. The absence of this syntax in Haskell, though non-critical and well meaning gives rise to a "principle of least surprise" violation for newcomers.
-
-This proposal enables record field access via '.' in Haskell. The essence of this proposal is that `a.b` will get the `b` field from the `a` record and many different datatypes can have a `b` field.
-
-Here's a basic example of what is on offer:
+In almost every programing language we write `a.b` to mean the `b` field of the `a` record expression. In Haskell that becomes `b a`, and even then, only works if there is only one `b` in scope. Haskell programmers have struggled with this weakness, variously putting each record in a separate module with qualified imports, or prefixing record fields with the type name. We propose bringing `a.b` to Haskell, which works regardless of how many `b` fields are in scope. Here's a simple example of what is on offer:
 
 ```haskell
 {-# LANGUAGE RecordDotSyntax #-}
@@ -35,11 +31,13 @@ nameAfterOwner :: Company -> Company
 nameAfterOwner c = c{name = c.owner.name ++ "'s Company"}
 ```
 
-In this example, two records are declared both having `name` as a field label. The user may then write `c.name` and `c.owner.name` to access those fields. We can also write `c{name = x}` as a record update, which still works even though `name` is no longer unique.
+We declare two records both having `name` as a field label. The user may then write `c.name` and `c.owner.name` to access those fields. We can also write `c{name = x}` as a record update, which works even though `name` is no longer unique.
 
-An implementation of this proposal has been battle tested and hardened over 18 months in enterprise settings in [Digital Asset](https://digitalasset.com/)'s [DAML](https://daml.com/) smart contract language (a Haskell derivative utilizing GHC in its implementation). The feature enjoys universal popularity with users and currently, no adverse interactions with other Haskell language features are known.
+An implementation of this proposal has been battle tested and hardened over 18 months in the enterprise environment as part of [Digital Asset](https://digitalasset.com/)'s [DAML](https://daml.com/) smart contract language (a Haskell derivative utilizing GHC in its implementation), and also in a [Haskell preprocessor and a GHC plugin](https://github.com/ndmitchell/record-dot-preprocessor/). When initially considering Haskell as a basis for DAML, the inadequacy of records was considered the most severe problem, and without devising the scheme presented here, we wouldn't be using Haskell. The feature enjoys universal popularity with users.
 
 ## Proposed Change Specification
+
+FIXME: This change specification needs sections on parsing, desugaring and other bits. It needs to be a lot more technical, ideally as grammar changes to the Haskell report.
 
 This change adds a new language extension (enabled at source via `{-# LANGUAGE RecordDotSyntax #-}` or on the command line via the flag `-XRecordDotSyntax`).
 
@@ -64,6 +62,8 @@ The above forms combine to provide these identies:
 * `expr{lbl1 = val1, lbl2 = val2}` is equivalent to `(expr{lbl1 = val1}){lbl2 = val2}`.
 
 ## Examples
+
+FIXME: I don't find this compelling. But suggest sorting out the proposed change spec first.
 
 Basic examples:
 
@@ -93,6 +93,8 @@ j :: [B] -> [Int]
 j l = map (.y.x) l
 ```
 
+FIXME: These examples don't include function updates or nested updates.
+
 A fuller, more rigourous set of tests are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests take the following considerations into account:
 
 * Basic operations;
@@ -105,15 +107,26 @@ A fuller, more rigourous set of tests are available in the examples directory of
 
 ## Effect and Interactions
 
-This proposal advocates a language extension `RecordDotSyntax` that enables the "record dot" notation traditional in most modern programming languages. Accordingly, the feature is "opt-in". Without regard for whether the extension is enabled or not, we do not anticipate adverse interactions with existing language or compiler features.
+**Polymorphic updates:** When enabled, this extension takes the `a{b=c}` syntax and uses it to mean `setField`. The biggest difference a user is likely to experience is that the resulting type of `a{b=c}` is the same as the type `a` - you _cannot_ change the type of the record by updating its fields. The removal of polymorphism is considered essential to preserve decent type inference.
+
+**Stealing a.b syntax:** The `a.b` syntax is commonly used in conjunction with the `lens` library, e.g. `expr^.field1.field2`. Treating then `a.b` without spaces as a record selection would break such code. The alternatives would be to use a library with a different lens composition operator (e.g. `optics`), or simply not enable this extension when also using lenses. In general those people who are already using lens approaches don't feel the problems of inadequate records as strongly.
 
 ## Costs and Drawbacks
+
+This proposal advocates a different style of writing Haskell records, which is distinct from the existing style. As
 
 Implementation of this proposal is a "light touch". Accomodating the language extension is achievable within a single pass over the parse tree. There are no modifications required with respect to the desguaring, typechecking or code generation phases of the compilation pipeline. The program implementing the extension is short and readable. The effect lowers the barrier to entry of record manipulation for novice users in a meaningful way. There are no known drawbacks.
 
 ## Alternatives
 
-The most realistic alternative to this proposed change is to retain the "status quo". That would be a shame since Haskell records are known to be the subject of criticism in some quarters and it's easy to improve upon with respect to this specific issue.
+The primary alternatives to the problem of records are:
+
+* Using the `lens` library. Then concept of lenses is very powerful, but that power can be more complex to use - in many ways lenses let you abstract over record fields.
+* Using `DuplicateRecordFields` - although I can find very little usage of this mechanism on Hackage. It seems hard to use in practice.
+* Put each record in a separate module - it's done, but it's complex.
+* Prefix each field by the name of its type.
+
+All these approaches are currently used, and represent the "status quo", where Haskell records are considered not fit for purpose.
 
 ## Unresolved Questions
 
@@ -121,4 +134,4 @@ There are no unresolved questions at this time.
 
 ## Implementation Plan
 
-If accepted, the proposal authors would be delighted to provide an implementation. There are no outstanding prerequisities that would need to first be satisfied.
+If accepted, the proposal authors would be delighted to provide an implementation. Implementation depends on the implementation of [the `HasField` proposal](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0158-record-set-field.rst) and [`NoFieldSelectors`](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0160-no-toplevel-field-selectors.rst).
