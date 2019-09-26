@@ -21,6 +21,7 @@ Languages that enable projection of a record component via '.' include Fortran, 
 This proposal enables record field access via '.' in Haskell. The essence of this proposal is that `a.b` will get the `b` field from the `a` record and many different datatypes can have a `b` field.
 
 Here's a basic example of what is on offer:
+
 ```haskell
 {-# LANGUAGE RecordDotSyntax #-}
 
@@ -33,6 +34,7 @@ display c = c.name ++ " is run by " ++ c.owner.name
 nameAfterOwner :: Company -> Company
 nameAfterOwner c = c{name = c.owner.name ++ "'s Company"}
 ```
+
 In this example, two records are declared both having `name` as a field label. The user may then write `c.name` and `c.owner.name` to access those fields. We can also write `c{name = x}` as a record update, which still works even though `name` is no longer unique.
 
 An implementation of this proposal has been battle tested and hardened over 18 months in enterprise settings in [Digital Asset](https://digitalasset.com/)'s [DAML](https://daml.com/) smart contract language (a Haskell derivative utilizing GHC in its implementation). The feature enjoys universal popularity with users and currently, no adverse interactions with other Haskell language features are known.
@@ -44,6 +46,7 @@ This change adds a new language extension (enabled at source via `{-# LANGUAGE R
 The use of '.' to denote function composition is disambiguated from the use of '.' to denote record field access by the presence (, respectively absence,) of whitespace surrounding the '.'.
 
 In the event the language extension is enabled:
+
 * `expr.lbl` is equivalent to `getField @"lbl" expr` (the `.` cannot have whitespace on either side).
 * `expr{lbl = val}` is equivalent to `setField @"lbl" expr val`.
 * `(.lbl)` is equivalent to `(\x -> x.lbl)` (the `.` cannot have whitespace after).
@@ -52,6 +55,7 @@ In the event the language extension is enabled:
 * `expr{lbl1.lbl2}` is equivalent to `expr{lbl1.lbl2 = lbl2}`.
 
 The above forms combine to provide these identies:
+
 * `expr.lbl1.lbl2` is equivalent to `(expr.lbl1).lbl2`.
 * `(.lbl1.lbl2)` is equivalent to `(\x -> x.lbl1.lbl2)`.
 * `expr.lbl1{lbl2 = val}` is equivalent to `(expr.lbl1){lbl2 = val}`.
@@ -62,6 +66,7 @@ The above forms combine to provide these identies:
 ## Examples
 
 Basic examples:
+
 ```haskell
 data A = A {x :: Int}
 data B = B {y :: A, z :: A}
@@ -89,13 +94,14 @@ j l = map (.y.x) l
 ```
 
 A fuller, more rigourous set of tests are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests take the following considerations into account:
-- Basic operations;
-- Parametrically polymorphic datatypes;
-- Complex record updates including nested updates;
-- Multiple occurences of a field label in a single datatype;
-- Infix applications and associativity;
-- Interoperability with existing extensions;
-- Interoperability with GADTs and existentials.
+
+* Basic operations;
+* Parametrically polymorphic datatypes;
+* Complex record updates including nested updates;
+* Multiple occurences of a field label in a single datatype;
+* Infix applications and associativity;
+* Interoperability with existing extensions;
+* Interoperability with GADTs and existentials.
 
 ## Effect and Interactions
 
@@ -112,7 +118,6 @@ The most realistic alternative to this proposed change is to retain the "status 
 ## Unresolved Questions
 
 There are no unresolved questions at this time.
-
 
 ## Implementation Plan
 
