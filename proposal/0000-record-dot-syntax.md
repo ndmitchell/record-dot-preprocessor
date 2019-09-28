@@ -47,9 +47,9 @@ In the event the language extension is enabled:
 
 | Expression | Equivalent |
 | -- | -- |
-| `e.lbl` | `getField @"lbl" e` the `.` cannot have whitespace on either side) |
+| `e.lbl` | `getField @"lbl" e` the `.` cannot have whitespace on either side |
 | `e{lbl = val}` | `setField @"lbl" e val` |
-| `(.lbl)` | `(\x -> x.lbl)` the `.` cannot have whitespace after) |
+| `(.lbl)` | `(\x -> x.lbl)` the `.` cannot have whitespace after |
 | `e{lbl1.lbl2 = val}` | `e{lbl1 = (e.lbl1){lbl2 = val}}` performing a nested update |
 | `e{lbl * val}` | `e{lbl = e.lbl * val}` where `*` can be any operator |
 | `e{lbl1.lbl2}` | `e{lbl1.lbl2 = lbl2}` |
