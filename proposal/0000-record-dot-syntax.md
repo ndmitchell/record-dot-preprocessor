@@ -64,36 +64,45 @@ The above forms combine to provide these identities:
 ## Examples
 
 FIXME: I don't find this compelling. But suggest sorting out the proposed change spec first.
+FIXME: Replaced with something at least a little bit better for now.
 
 Basic examples:
 
 ```haskell
-data A = A {x :: Int}
-data B = B {y :: A, z :: A}
-data C = C {a :: Int, b :: Int}
+data Grade = A | B | C | D | E | F
+data Quarter = Fall | Winter | Spring
+data Status = Passed | Failed | Incomplete | Withdrawn
 
--- Get
-f :: A -> Int
-f s = s.x
+data Taken =
+  Taken { year : Int
+        , term : Quarter
+        }
 
--- Get/set
-g :: A -> A
-g s = s {x = s.x + 1}
+data Class =
+  Class { hours : Int
+        , units : Int
+        , grade : Grade
+        , result : Status
+        , taken : Taken
+        }
 
--- Nesting gets and sets
-h :: B -> B
-h s = s{y = s.y{x = s.y.x + 1}, z = s.z{x = (\ x -> x * x) s.z{xx = s.z.x}.x}}
+getResult :: Class -> Status
+getResult c = c.result -- get
 
--- Sections
-i :: [A] -> [Int]
-i l = map (.x) l
+setResult :: Class -> Status -> Class
+setResult c r = c{result = r} -- update
 
--- Sections with nesting
-j :: [B] -> [Int]
-j l = map (.y.x) l
+setYearTaken :: Class -> Int -> Class
+setYearTaken c y = c{taken.year = y} -- nested update
+
+getResults :: [Class] -> [Status]
+getResults = map (.result) -- section
+
+getTerms :: [Class]  -> [Quarter]
+getTerms = map (.taken.term) -- nested section
 ```
 
-FIXME: These examples don't include function updates or nested updates.
+FIXME: These examples don't include function updates ~or nested updates~.
 
 A fuller, more rigorous set of tests are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests take the following considerations into account:
 
