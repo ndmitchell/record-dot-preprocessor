@@ -45,21 +45,25 @@ The use of '.' to denote function composition is disambiguated from the use of '
 
 In the event the language extension is enabled:
 
-* `expr.lbl` is equivalent to `getField @"lbl" expr` (the `.` cannot have whitespace on either side).
-* `expr{lbl = val}` is equivalent to `setField @"lbl" expr val`.
-* `(.lbl)` is equivalent to `(\x -> x.lbl)` (the `.` cannot have whitespace after).
-* `expr{lbl1.lbl2 = val}` is equivalent to `expr{lbl1 = (expr.lbl1){lbl2 = val}}`, performing a nested update.
-* `expr{lbl * val}` is equivalent to `expr{lbl = expr.lbl * val}`, where `*` can be any operator.
-* `expr{lbl1.lbl2}` is equivalent to `expr{lbl1.lbl2 = lbl2}`.
+| Expression | Equivalent |
+| -- | -- |
+| `e.lbl` | `getField @"lbl" e` the `.` cannot have whitespace on either side) |
+| `e{lbl = val}` | `setField @"lbl" e val` |
+| `(.lbl)` | `(\x -> x.lbl)` the `.` cannot have whitespace after) |
+| `e{lbl1.lbl2 = val}` | `e{lbl1 = (e.lbl1){lbl2 = val}}` performing a nested update |
+| `e{lbl * val}` | `e{lbl = e.lbl * val}` where `*` can be any operator |
+| `e{lbl1.lbl2}` | `e{lbl1.lbl2 = lbl2}` |
 
 The above forms combine to provide these identities:
 
-* `expr.lbl1.lbl2` is equivalent to `(expr.lbl1).lbl2`.
-* `(.lbl1.lbl2)` is equivalent to `(\x -> x.lbl1.lbl2)`.
-* `expr.lbl1{lbl2 = val}` is equivalent to `(expr.lbl1){lbl2 = val}`.
-* `expr{lbl1 = val}.lbl2` is equivalent to `(expr{lbl1 = val}).lbl2`.
-* `expr{lbl1.lbl2 * val}` is equivalent to `expr{lbl1.lbl2 = expr.lbl1.lbl2 * val}`.
-* `expr{lbl1 = val1, lbl2 = val2}` is equivalent to `(expr{lbl1 = val1}){lbl2 = val2}`.
+| Eession | Equivalent
+| -- | -- |
+| `e.lbl1.lbl2` | `(e.lbl1).lbl2` |
+| `(.lbl1.lbl2)` | `(\x -> x.lbl1.lbl2)` |
+| `e.lbl1{lbl2 = val}` | `(e.lbl1){lbl2 = val}` |
+| `e{lbl1 = val}.lbl2` | `(e{lbl1 = val}).lbl2` |
+| `e{lbl1.lbl2 * val}` | `e{lbl1.lbl2 = e.lbl1.lbl2 * val}` |
+| `e{lbl1 = val1, lbl2 = val2}` | `(e{lbl1 = val1}){lbl2 = val2}` |
 
 ## Examples
 
