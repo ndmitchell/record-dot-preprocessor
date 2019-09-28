@@ -12,12 +12,13 @@ the link, and delete this bold sentence.**
 
 # Record Dot Syntax
 
-Records in Haskell are [widely recognised](https://www.yesodweb.com/blog/2011/09/limitations-of-haskell) as being under-powered, with duplicate field names being particularly troublesome. We propose a new language extension `RecordDotSyntax` that provides syntactic sugar to make the features introduced in [the `HasField` proposal](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0158-record-set-field.rst) more accessible, improving the user experience.
+Records in Haskell are [recognised](https://www.yesodweb.com/blog/2011/09/limitations-of-haskell) as being under-powered, with duplicate field names being particularly troublesome. We propose a new language extension `RecordDotSyntax` - concrete syntax exercising [the `HasField` proposal](https://github.com/ghc-proposals/ghc-proposals/blob/master/proposals/0158-record-set-field.rst). Dot syntax by `HasField` improves user experience.
 
 ## Motivation
 
-In almost every programing language we write `a.b` to mean the `b` field of the `a` record expression. In Haskell that becomes `b a`, and even then, only works if there is only one `b` in scope. Haskell programmers have struggled with this weakness, variously putting each record in a separate module with qualified imports, or prefixing record fields with the type name. We propose bringing `a.b` to Haskell, which works regardless of how many `b` fields are in scope. Here's a simple example of what is on offer:
+In near all in-use languages `a.b` gets the `b` field from the `a`. Also,  there can be more than one type of `a` with component `b`. Dot (products) and projections are intimately related. Dot denoting projection is _useful_ (compact and recognizable).`RecordDotSyntax` uses '.' to mean projections of records.
 
+Here's what's on offer:
 ```haskell
 {-# LANGUAGE RecordDotSyntax #-}
 
@@ -31,9 +32,13 @@ nameAfterOwner :: Company -> Company
 nameAfterOwner c = c{name = c.owner.name ++ "'s Company"}
 ```
 
-We declare two records both having `name` as a field label. The user may then write `c.name` and `c.owner.name` to access those fields. We can also write `c{name = x}` as a record update, which works even though `name` is no longer unique.
+Two records are declared, both contain label : `name`. The user writes `c.name` and `c.owner.name` to access field values. Record updates express as `c{name = x}`. It's of no consequence that `name` is non-unique.
 
-An implementation of this proposal has been battle tested and hardened over 18 months in the enterprise environment as part of [Digital Asset](https://digitalasset.com/)'s [DAML](https://daml.com/) smart contract language (a Haskell derivative utilizing GHC in its implementation), and also in a [Haskell preprocessor and a GHC plugin](https://github.com/ndmitchell/record-dot-preprocessor/). When initially considering Haskell as a basis for DAML, the inadequacy of records was considered the most severe problem, and without devising the scheme presented here, we wouldn't be using Haskell. The feature enjoys universal popularity with users.
+There are multiple implementations of this proposal:
+- [A Haskell preprocessor, a GHC plugin](https://github.com/ndmitchell/record-dot-preprocessor/);
+- The [DAML](https://daml.com/) language. DAML's implementation is battle hardened over 18 months in the enterprise environment.
+
+The feature enjoys universal popularity.
 
 ## Proposed Change Specification
 
@@ -68,29 +73,37 @@ FIXME: I don't find this compelling. But suggest sorting out the proposed change
 Basic examples:
 
 ```haskell
-data A = A {x :: Int}
-data B = B {y :: A, z :: A}
-data C = C {a :: Int, b :: Int}
+data Grade = A | B | C | D | E | F
+data Quarter = Fall | Winter | Spring
+data Status = Passed | Failed | Incomplete | Withdrawn
 
--- Get
-f :: A -> Int
-f s = s.x
+data Taken =
+  Taken { year : Int
+        , term : Quarter
+        }
 
--- Get/set
-g :: A -> A
-g s = s {x = s.x + 1}
+data Class =
+  Class { hours : Int
+        , units : Int
+        , grade : Grade
+        , result : Status
+        , taken : Taken
+        }
 
--- Nesting gets and sets
-h :: B -> B
-h s = s{y = s.y{x = s.y.x + 1}, z = s.z{x = (\ x -> x * x) s.z{xx = s.z.x}.x}}
+getResult :: Class -> Status
+getResult c = c.result -- get
 
--- Sections
-i :: [A] -> [Int]
-i l = map (.x) l
+setResult :: Class -> Status -> Class
+setResult c r = c{result = r} -- update
 
--- Sections with nesting
-j :: [B] -> [Int]
-j l = map (.y.x) l
+setYearTaken :: Class -> Int -> Class
+setYearTaken c y = c{taken.year = y} -- nested update
+
+getResults :: [Class] -> [Status]
+getResults = map (.result) -- section
+
+getTerms :: [Class]  -> [Quarter]
+getTerms = map (.taken.term) -- nested section
 ```
 
 FIXME: These examples don't include function updates or nested updates.
