@@ -56,7 +56,7 @@ In the event the language extension is enabled:
 
 The above forms combine to provide these identities:
 
-| Eession | Equivalent
+| Expression | Equivalent
 | -- | -- |
 | `e.lbl1.lbl2` | `(e.lbl1).lbl2` |
 | `(.lbl1.lbl2)` | `(\x -> x.lbl1.lbl2)` |
