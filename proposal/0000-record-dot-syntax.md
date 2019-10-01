@@ -37,11 +37,34 @@ An implementation of this proposal has been battle tested and hardened over 18 m
 
 ## Proposed Change Specification
 
-FIXME: This change specification needs sections on parsing, desugaring and other bits. It needs to be a lot more technical, ideally as grammar changes to the Haskell report.
+FIXME: This change specification needs sections on ~parsing,~ desugaring and other bits. It needs to be a lot more technical, ideally as grammar changes to the Haskell report.
+
+### `RecordDotSyntax` language extension
 
 This change adds a new language extension (enabled at source via `{-# LANGUAGE RecordDotSyntax #-}` or on the command line via the flag `-XRecordDotSyntax`).
 
-The use of '.' to denote function composition is disambiguated from the use of '.' to denote record field access by the presence (, respectively absence,) of whitespace surrounding the '.'.
+When `RecordDotSyntax` is in effect, the use of '.' to denote function composition is disambiguated from the use of '.' to denote record field access by the presence (, respectively absence,) of whitespace trailing the '.'.
+
+Suppose the following datatype declarations.
+```haskell
+data Foo = Foo {foo :: Bar}
+data Bar = Bar {bar :: Baz}
+data Baz = Baz {baz :: Quux}
+data Quux = Quux {quux :: Int}
+```
+The existence of the builtin `HasField` typeclass means that it is possible to write code for getting and setting record fields like this:
+```haskell
+getQuux :: Foo -> Int
+getQuux a = getField @"quux" (getField @"baz" (getField @"bar" (getField @"foo" a)))
+
+setQuux :: Foo -> Int -> Foo
+setQuux a i = setField@"foo" a (setField@"bar" (getField @"foo" a)(setField@"baz" (getField @"bar" (getField @"foo" a))(setField@"quux" (getField @"baz" (getField @"bar" (getField @"foo" a))) i)))
+```
+`RecordDotSyntax` enables new concrete syntax so that the following program is equivalent.
+```haskell
+getQuux a = a.foo.bar.baz.quux
+setQuux a i = a{foo.bar.baz.quux = i}
+```
 
 In the event the language extension is enabled:
 
@@ -56,7 +79,7 @@ In the event the language extension is enabled:
 
 The above forms combine to provide these identities:
 
-| Expression | Equivalent
+| Expression | Identity
 | -- | -- |
 | `e.lbl1.lbl2` | `(e.lbl1).lbl2` |
 | `(.lbl1.lbl2)` | `(\x -> x.lbl1.lbl2)` |
@@ -64,6 +87,117 @@ The above forms combine to provide these identities:
 | `e{lbl1 = val}.lbl2` | `(e{lbl1 = val}).lbl2` |
 | `e{lbl1.lbl2 * val}` | `e{lbl1.lbl2 = e.lbl1.lbl2 * val}` |
 | `e{lbl1 = val1, lbl2 = val2}` | `(e{lbl1 = val1}){lbl2 = val2}` |
+
+### Lexer
+
+A new lexeme *fieldid* is introduced.
+<br/>
+<br/>*lexeme* → *qvarid* | *qconid* | *qvarsym* | *qconsym*
+| *literal* | *special* | *reservedop* | *reservedid* | *fieldid*
+<br/>*fieldid* → *.varid*
+
+This specification results in the following.
+```
+-- Regular expressions
+@fieldid = (\. @varid)
+...
+<0,option_prags> {
+  ...
+  @fieldid / {ifExtension RecordDotSyntaxBit} { idtoken fieldid }
+}
+...
+
+-- Token type
+data Token
+  = ITas
+  | ...
+  | ITfieldid FastString
+  ...
+
+-- Lexer actions
+fieldid :: StringBuffer -> Int -> Token
+fieldid buf len = let (_dot, buf') = nextChar buf in ITfieldid $! lexemeToFastString buf' (len - 1)
+```
+Tokens of case `ITfieldid`  may not be issued if `RecordDotSyntax` is not enabled.
+
+### Parser
+
+#### Field selections
+To support '.' field selection the *fexp* production is extended.
+<br/>
+<br/>*fexp*	→ [ *fexp* ] *aexp* | *fexp* *fieldid*
+
+The specification expresses like this.
+```
+%token
+ ...
+ FIELDID { L _ (ITfieldid  _) }
+%%
+
+...
+
+fexp    :: { ECP }
+        : fexp aexp { ...}
+        | fexp FIELDID { ...}  -- <- here
+        | ...
+```
+
+#### Field updates
+To support the new forms of '.' field update *aexp* production is extended.
+<br/>
+<br> *aexp* → *aexp⟨qcon⟩* { *pbind* , … , *pbind* }
+<br/>*pbind* -> *qvar*=*exp* | *var* *fieldids*=exp | *var* *fieldids* *qop* *exp* <!-- | *var* *fieldids* -->
+<br/>*fieldids* -> *fieldids* *fieldid*
+
+In this table, the newly added cases are shown next to an example expression they enable:
+
+| Production | Example | Commentary |
+| -- |  -- | -- |
+|*var* *fieldids*=*exp* | `a{foo.bar=2}` | the *var* is `foo`, `.bar` is a fieldid |
+|*var* *fieldids* *qop* *exp* | `a{foo.bar * 12}`   | update `a`'s `foo.bar` field to 12 times its initial value |
+
+<!-- |*var* *fieldids* | `a{foo.bar} -- no-op` | -->
+
+For example, suport for expressions like `a{foo.bar.baz.quux=i}` can be had with one additional case:
+```
+aexp1   :: { ECP }
+        : aexp1 '{' fbinds '}' { ... }
+        | aexp1 '{' VARID fieldids '=' texp '}' {...} -- <- here
+
+fieldids :: {[FastString]}
+fieldids
+        : fieldids FIELDID { getFIELDID $2 : $1 }
+        | FIELDID { [getFIELDID $1] }
+
+{
+getFIELDID      (dL->L _ (ITfieldid   x)) = x
+}
+
+```
+An implementation of `RecordDotSyntax` will have to do more than this to incorporate all alternatives.
+
+#### Sections
+To support '.' sections (e.g. `(.foo.bar.baz)`), we generalize *aexp*.
+<br/>
+<br/>*aexp* →	( *infixexp* *qop* ) (left section)
+          | ( *qop* *infixexp* )	 (right section)
+          | ( *fieldids* )           (projection (right) section)
+
+This specification implies the following additional case to `aexp2`.
+```
+aexp2   :: { ECP }
+        ...
+        | '(' texp ')' {...}
+        | '(' fieldids ')' {...} -- <- here
+```
+
+### Typechecker
+
+Say something about type-checking.
+
+### Renamer
+
+Say something about renaming. I guess desugaring has to occur here after typechecking if there's any hope of reasonable error messages.
 
 ## Examples
 
@@ -107,8 +241,9 @@ getTerms = map (.taken.term) -- nested section
 ```
 
 FIXME: These examples don't include function updates ~or nested updates~.
+FIXME: What is meant by "function update" here?
 
-A fuller, more rigorous set of tests are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests take the following considerations into account:
+A full, rigorous set of tests are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests take the following considerations into account:
 
 * Basic operations;
 * Parametrically polymorphic datatypes;
@@ -128,7 +263,7 @@ A fuller, more rigorous set of tests are available in the examples directory of 
 
 ## Costs and Drawbacks
 
-The implementation of this proposal adds code to the compiler, but not a huge amount. Our [prototype implementation](https://gitlab.haskell.org/shayne-fletcher-da/ghc/commits/record-dot-syntax) shows the parsing changes, which is the most complex part.
+The implementation of this proposal adds code to the compiler, but not a huge amount. Our [prototype implementation](https://gitlab.haskell.org/shayne-fletcher-da/ghc/commits/record-dot-syntax) shows the essence of the parsing changes, which is the most complex part.
 
 If this proposal becomes widely used then it is likely that all Haskell users would have to learn that `a.b` is a record field selection. Fortunately, given how popular this syntax is elsewhere, that is unlikely to surprise new users.
 
