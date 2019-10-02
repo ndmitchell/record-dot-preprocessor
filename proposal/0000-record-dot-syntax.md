@@ -248,7 +248,7 @@ getTerms :: [Class]  -> [Quarter]
 getTerms = map (.taken.term) -- nested section
 ```
 
-A full, rigorous set of examples (as tests) are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests include infix applications, polymorphic data types, interoperation with other extensions etc. These tests follow the specifications given earlier.
+A full, rigorous set of examples (as tests) are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests include infix applications, polymorphic data types, interoperation with other extensions and more. They follow the [specifications given earlier](#proposed-change-specification).
 
 ## Effect and Interactions
 
