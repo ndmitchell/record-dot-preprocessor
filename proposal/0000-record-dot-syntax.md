@@ -156,7 +156,6 @@ fexp    :: { ECP }
 To support the new forms of '.' field update *aexp* production is extended.
 <br/>
 <br> *aexp* → *aexp⟨qcon⟩* { *pbind* , … , *pbind* }
-<br/>*pbind* -> *qvar*=*exp* | *var* *fieldids*=exp | *var* *fieldids* *qop* *exp* <!-- | *var* *fieldids* -->
 <br/>*fieldids* -> *fieldids* *fieldid*
 
 In this table, the newly added cases are shown next to an example expression they enable:
