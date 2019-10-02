@@ -37,7 +37,7 @@ An implementation of this proposal has been battle tested and hardened over 18 m
 
 ## Proposed Change Specification
 
-FIXME: This change specification needs sections on ~parsing,~ desugaring and other bits. It needs to be a lot more technical, ideally as grammar changes to the Haskell report.
+For this extension we focus on the changes to the parsing rules, and the desugaring, with the expectation the type checking and renamer follow directly from that. To confirm these changes integrate as expected we have written [a prototype implementation](https://gitlab.haskell.org/shayne-fletcher-da/ghc/commits/record-dot-syntax) that parses and desugars the forms directly in the parser.
 
 ### `RecordDotSyntax` language extension
 
@@ -46,21 +46,26 @@ This change adds a new language extension (enabled at source via `{-# LANGUAGE R
 When `RecordDotSyntax` is in effect, the use of '.' to denote function composition is disambiguated from the use of '.' to denote record field access by the presence (, respectively absence,) of whitespace trailing the '.'.
 
 Suppose the following datatype declarations.
+
 ```haskell
 data Foo = Foo {foo :: Bar}
 data Bar = Bar {bar :: Baz}
 data Baz = Baz {baz :: Quux}
 data Quux = Quux {quux :: Int}
 ```
+
 The existence of the builtin `HasField` typeclass means that it is possible to write code for getting and setting record fields like this:
+
 ```haskell
 getQuux :: Foo -> Int
 getQuux a = getField @"quux" (getField @"baz" (getField @"bar" (getField @"foo" a)))
 
 setQuux :: Foo -> Int -> Foo
-setQuux a i = setField@"foo" a (setField@"bar" (getField @"foo" a)(setField@"baz" (getField @"bar" (getField @"foo" a))(setField@"quux" (getField @"baz" (getField @"bar" (getField @"foo" a))) i)))
+setQuux a i = setField@"foo" a (setField@"bar" (getField @"foo" a) (setField@"baz" (getField @"bar" (getField @"foo" a)) (setField@"quux" (getField @"baz" (getField @"bar" (getField @"foo" a))) i)))
 ```
+
 `RecordDotSyntax` enables new concrete syntax so that the following program is equivalent.
+
 ```haskell
 getQuux a = a.foo.bar.baz.quux
 setQuux a i = a{foo.bar.baz.quux = i}
@@ -97,7 +102,8 @@ A new lexeme *fieldid* is introduced.
 <br/>*fieldid* → *.varid*
 
 This specification results in the following.
-```
+
+```haskell
 -- Regular expressions
 @fieldid = (\. @varid)
 ...
@@ -118,17 +124,20 @@ data Token
 fieldid :: StringBuffer -> Int -> Token
 fieldid buf len = let (_dot, buf') = nextChar buf in ITfieldid $! lexemeToFastString buf' (len - 1)
 ```
+
 Tokens of case `ITfieldid`  may not be issued if `RecordDotSyntax` is not enabled.
 
 ### Parser
 
 #### Field selections
+
 To support '.' field selection the *fexp* production is extended.
 <br/>
 <br/>*fexp*	→ [ *fexp* ] *aexp* | *fexp* *fieldid*
 
 The specification expresses like this.
-```
+
+```haskell
 %token
  ...
  FIELDID { L _ (ITfieldid  _) }
@@ -143,6 +152,7 @@ fexp    :: { ECP }
 ```
 
 #### Field updates
+
 To support the new forms of '.' field update *aexp* production is extended.
 <br/>
 <br> *aexp* → *aexp⟨qcon⟩* { *pbind* , … , *pbind* }
@@ -158,8 +168,9 @@ In this table, the newly added cases are shown next to an example expression the
 
 <!-- |*var* *fieldids* | `a{foo.bar} -- no-op` | -->
 
-For example, suport for expressions like `a{foo.bar.baz.quux=i}` can be had with one additional case:
-```
+For example, support for expressions like `a{foo.bar.baz.quux=i}` can be had with one additional case:
+
+```haskell
 aexp1   :: { ECP }
         : aexp1 '{' fbinds '}' { ... }
         | aexp1 '{' VARID fieldids '=' texp '}' {...} -- <- here
@@ -172,11 +183,12 @@ fieldids
 {
 getFIELDID      (dL->L _ (ITfieldid   x)) = x
 }
-
 ```
+
 An implementation of `RecordDotSyntax` will have to do more than this to incorporate all alternatives.
 
 #### Sections
+
 To support '.' sections (e.g. `(.foo.bar.baz)`), we generalize *aexp*.
 <br/>
 <br/>*aexp* →	( *infixexp* *qop* ) (left section)
@@ -184,25 +196,15 @@ To support '.' sections (e.g. `(.foo.bar.baz)`), we generalize *aexp*.
           | ( *fieldids* )           (projection (right) section)
 
 This specification implies the following additional case to `aexp2`.
-```
+
+```haskell
 aexp2   :: { ECP }
         ...
         | '(' texp ')' {...}
         | '(' fieldids ')' {...} -- <- here
 ```
 
-### Typechecker
-
-Say something about type-checking.
-
-### Renamer
-
-Say something about renaming. I guess desugaring has to occur here after typechecking if there's any hope of reasonable error messages.
-
 ## Examples
-
-FIXME: I don't find this compelling. But suggest sorting out the proposed change spec first.
-FIXME: Replaced with something at least a little bit better for now.
 
 Basic examples:
 
@@ -244,21 +246,9 @@ getResults = map (.result) -- section
 
 getTerms :: [Class]  -> [Quarter]
 getTerms = map (.taken.term) -- nested section
-
 ```
 
-~FIXME: These examples don't include function updates or nested updates~.
-~FIXME: What is meant by "function update" here?~
-
-A full, rigorous set of tests are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests take the following considerations into account:
-
-* Basic operations;
-* Parametrically polymorphic datatypes;
-* Complex record updates including nested updates;
-* Multiple occurrences of a field label in a single datatype;
-* Infix applications and associativity;
-* Interoperability with existing extensions;
-* Interoperability with GADTs and existentials.
+A full, rigorous set of examples (as tests) are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests include infix applications, polymorphic data types, interoperation with other extensions etc. These tests follow the specifications given earlier.
 
 ## Effect and Interactions
 
