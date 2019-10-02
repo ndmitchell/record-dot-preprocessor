@@ -156,7 +156,7 @@ fexp    :: { ECP }
 To support the new forms of '.' field update *aexp* production is extended.
 <br/>
 <br> *aexp* → *aexp⟨qcon⟩* { *pbind* , … , *pbind* }
-<br/>*pbind* -> *qvar*=*exp* | *var* *fieldids*=*exp* | *var* *fieldids* *qop* *exp* <!-- | *var* *fieldids* -->
+<br/>*pbind* -> *qvar*=*exp* | *var* *fieldids*=*exp* | *var* *fieldids* *qop* *exp* | *var* [*fieldids*]
 <br/>*fieldids* -> *fieldids* *fieldid*
 
 In this table, the newly added cases are shown next to an example expression they enable:
@@ -165,8 +165,7 @@ In this table, the newly added cases are shown next to an example expression the
 | -- |  -- | -- |
 |*var* *fieldids*=*exp* | `a{foo.bar=2}` | the *var* is `foo`, `.bar` is a fieldid |
 |*var* *fieldids* *qop* *exp* | `a{foo.bar * 12}`   | update `a`'s `foo.bar` field to 12 times its initial value |
-
-<!-- |*var* *fieldids* | `a{foo.bar} -- no-op` | -->
+|*var* [*fieldids*] | `a{foo.bar}` | equivalent to `a` |
 
 For example, support for expressions like `a{foo.bar.baz.quux=i}` can be had with one additional case:
 
