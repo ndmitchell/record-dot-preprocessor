@@ -206,7 +206,7 @@ aexp2   :: { ECP }
 
 ## Examples
 
-Basic examples:
+This is a record type with functions describing a study `Class` (*from Oh! Pascal, 2nd ed. Cooper & Clancy, 1985*).
 
 ```haskell
 data Grade = A | B | C | D | E | F
