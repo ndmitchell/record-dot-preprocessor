@@ -233,15 +233,22 @@ setResult c r = c{result = r} -- update
 setYearTaken :: Class -> Int -> Class
 setYearTaken c y = c{taken.year = y} -- nested update
 
+addYears :: Class -> Int -> Class
+addYears c n = c{taken.year + n} -- update via op
+
+squareUnits :: Class -> Class
+squareUnits c = c{units & (\x -> x * x)} -- update via function
+
 getResults :: [Class] -> [Status]
 getResults = map (.result) -- section
 
 getTerms :: [Class]  -> [Quarter]
 getTerms = map (.taken.term) -- nested section
+
 ```
 
-FIXME: These examples don't include function updates ~or nested updates~.
-FIXME: What is meant by "function update" here?
+~FIXME: These examples don't include function updates or nested updates~.
+~FIXME: What is meant by "function update" here?~
 
 A full, rigorous set of tests are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests take the following considerations into account:
 
