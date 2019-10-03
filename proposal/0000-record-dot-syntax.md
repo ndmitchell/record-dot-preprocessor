@@ -205,7 +205,7 @@ aexp2   :: { ECP }
 
 ## Examples
 
-Basic examples:
+This is a record type with functions describing a study `Class` (*from Oh! Pascal, 2nd ed. Cooper & Clancy, 1985*).
 
 ```haskell
 data Grade = A | B | C | D | E | F
@@ -247,7 +247,7 @@ getTerms :: [Class]  -> [Quarter]
 getTerms = map (.taken.term) -- nested section
 ```
 
-A full, rigorous set of examples (as tests) are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests include infix applications, polymorphic data types, interoperation with other extensions etc. These tests follow the specifications given earlier.
+A full, rigorous set of examples (as tests) are available in the examples directory of [this repository](https://github.com/ndmitchell/record-dot-preprocessor). Those tests include infix applications, polymorphic data types, interoperation with other extensions and more. They follow the [specifications given earlier](#proposed-change-specification).
 
 ## Effect and Interactions
 
@@ -255,7 +255,7 @@ A full, rigorous set of examples (as tests) are available in the examples direct
 
 **Stealing a.b syntax:** The `a.b` syntax is commonly used in conjunction with the `lens` library, e.g. `expr^.field1.field2`. Treating `a.b` without spaces as a record projection would break such code. The alternatives would be to use a library with a different lens composition operator (e.g. `optics`), introduce an alias in `lens` for `.` (perhaps `%`), write such expressions with spaces, or not enable this extension when also using lenses. While unfortunate, we consider that people who are heavy users of lens don't feel the problems of inadequate records as strongly, so the problems are lessened.
 
-**Enabled extensions:** When `RecordDotSyntax` is enabled it should imply the `NoFieldSelectors` extension and allow duplicate record field labels. It would be possible for `RecordDotSyntax` to imply `DuplicateRecordFields`, but we suspect that if people become comfortable with `RecordDotSyntax` then there will be a desire to remove the `DuplicateRecordFields` extension, so don't want to build on top of it.
+**Enabled extensions:** When `RecordDotSyntax` is enabled it should imply the `NoFieldSelectors` extension and allow duplicate record field labels. It would be possible for `RecordDotSyntax` to imply `DuplicateRecordFields`, but we suspect that if people become comfortable with `RecordDotSyntax` then there will be a desire to remove the `DuplicateRecordFields` extension, so we don't want to build on top of it.
 
 ## Costs and Drawbacks
 
@@ -263,7 +263,7 @@ The implementation of this proposal adds code to the compiler, but not a huge am
 
 If this proposal becomes widely used then it is likely that all Haskell users would have to learn that `a.b` is a record field selection. Fortunately, given how popular this syntax is elsewhere, that is unlikely to surprise new users.
 
-This proposal advocates a different style of writing Haskell records, which is distinct from the existing style. As such, it may lead to the bifurcation of Haskell styles, with some people preferring the lens approach, and some point preferring the syntax presented here. That is no doubt unfortunate, but hard to avoid - `a.b` really is ubiquitous in programming languages. We consider that any solution to the records problem _must_ cause some level of divergence, but note that this mechanism (as distinct from some proposals) localises that divergence in the implementation of a module - users of the module will not know whether its internals used this extension or not.
+This proposal advocates a different style of writing Haskell records, which is distinct from the existing style. As such, it may lead to the bifurcation of Haskell styles, with some people preferring the lens approach, and some people preferring the syntax presented here. That is no doubt unfortunate, but hard to avoid - `a.b` really is ubiquitous in programming languages. We consider that any solution to the records problem _must_ cause some level of divergence, but note that this mechanism (as distinct from some proposals) localises that divergence in the implementation of a module - users of the module will not know whether its internals used this extension or not.
 
 ## Alternatives
 
