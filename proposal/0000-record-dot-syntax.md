@@ -80,7 +80,7 @@ In the event the language extension is enabled:
 | `(.lbl)` | `(\x -> x.lbl)` the `.` cannot have whitespace after |
 | `e{lbl1.lbl2 = val}` | `e{lbl1 = (e.lbl1){lbl2 = val}}` performing a nested update |
 | `e{lbl * val}` | `e{lbl = e.lbl * val}` where `*` can be any operator |
-| `e{lbl1.lbl2}` | `e{lbl1.lbl2 = lbl2}` |
+| `e{lbl1.lbl2}` | `e{lbl1.lbl2 = lbl2}` when punning is enabled|
 
 The above forms combine to provide these identities:
 
@@ -165,7 +165,7 @@ In this table, the newly added cases are shown next to an example expression the
 | -- |  -- | -- |
 |*var* *fieldids*=*exp* | `a{foo.bar=2}` | the *var* is `foo`, `.bar` is a fieldid |
 |*var* *fieldids* *qop* *exp* | `a{foo.bar * 12}`   | update `a`'s `foo.bar` field to 12 times its initial value |
-|*var* [*fieldids*] | `a{foo.bar}` | equivalent to `a` |
+|*var* [*fieldids*] | `a{foo.bar}` | means `a{foo.bar = bar}` when punning is enabled |
 
 For example, support for expressions like `a{foo.bar.baz.quux=i}` can be had with one additional case:
 
@@ -205,7 +205,7 @@ aexp2   :: { ECP }
 
 ## Examples
 
-This is a record type with functions describing a study `Class` (*from Oh! Pascal, 2nd ed. Cooper & Clancy, 1985*).
+This is a record type with functions describing a study `Class` (*Oh! Pascal, 2nd ed. Cooper & Clancy, 1985*).
 
 ```haskell
 data Grade = A | B | C | D | E | F
