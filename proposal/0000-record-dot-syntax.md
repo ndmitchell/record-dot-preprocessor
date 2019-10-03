@@ -80,7 +80,7 @@ In the event the language extension is enabled:
 | `(.lbl)` | `(\x -> x.lbl)` the `.` cannot have whitespace after |
 | `e{lbl1.lbl2 = val}` | `e{lbl1 = (e.lbl1){lbl2 = val}}` performing a nested update |
 | `e{lbl * val}` | `e{lbl = e.lbl * val}` where `*` can be any operator |
-| `e{lbl1.lbl2}` | `e{lbl1.lbl2 = lbl2}` when punning is enabled|
+| `e{lbl1.lbl2}` | `e{lbl1.lbl2 = lbl2}` when punning is enabled |
 
 The above forms combine to provide these identities:
 
