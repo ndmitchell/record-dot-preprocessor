@@ -286,7 +286,7 @@ All these approaches are currently used, and represent the "status quo", where H
 Below are some possible variations on this plan, but we advocate the choices made above:
 
 * Should `RecordDotSyntax` imply `NoFieldSelectors`? They are often likely to be used in conjunction, but they aren't inseparable.
-* It seems appealing that `a{field += 1}` would be the syntax for incrementing a field. However, `+=` is a valid operator (would that be `a{field +== 1}`?) and for infix operators like `div` would that be `\`div\`=`?
+* It seems appealing that `a{field += 1}` would be the syntax for incrementing a field. However, `+=` is a valid operator (would that be `a{field +== 1}`?) and for infix operators like `div` would that be <tt>\`div\`=</tt>?
 * We do not extend pattern matching, although it would be possible for `P{foo.bar=Just x}` to be defined.
 
 ## Implementation Plan
