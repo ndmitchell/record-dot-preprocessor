@@ -37,13 +37,13 @@ An implementation of this proposal has been battle tested and hardened over 18 m
 
 ## Proposed Change Specification
 
-For this extension we focus on the changes to the parsing rules, and the desugaring, with the expectation the type checking and renamer follow directly from that. To confirm these changes integrate as expected we have written [a prototype implementation](https://gitlab.haskell.org/shayne-fletcher-da/ghc/commits/record-dot-syntax) that parses and desugars the forms directly in the parser.
+For the specification we focus on the changes to the parsing rules, and the desugaring, with the belief the type checking and renamer changes required are unambiguous consequences of those. To confirm these changes integrate as expected we have written [a prototype implementation](https://gitlab.haskell.org/shayne-fletcher-da/ghc/commits/record-dot-syntax) that parses and desugars the forms directly in the parser. For confirmation, we _do not_ view desugaring in the parser as the correct implementation choice, but it provides a simple mechanism to pin down the changes without going as far as adding additional AST nodes or type checker rules.
 
 ### `RecordDotSyntax` language extension
 
 This change adds a new language extension (enabled at source via `{-# LANGUAGE RecordDotSyntax #-}` or on the command line via the flag `-XRecordDotSyntax`).
 
-When `RecordDotSyntax` is in effect, the use of '.' to denote function composition is disambiguated from the use of '.' to denote record field access by the presence (, respectively absence,) of whitespace trailing the '.'.
+When `RecordDotSyntax` is in effect, the use of '.' to denote record field access is disambiguated from function composition by the absence of whitespace trailing the '.'.
 
 Suppose the following datatype declarations.
 
@@ -92,6 +92,7 @@ The above forms combine to provide these identities:
 | `e{lbl1 = val}.lbl2` | `(e{lbl1 = val}).lbl2` |
 | `e{lbl1.lbl2 * val}` | `e{lbl1.lbl2 = e.lbl1.lbl2 * val}` |
 | `e{lbl1 = val1, lbl2 = val2}` | `(e{lbl1 = val1}){lbl2 = val2}` |
+| `e{lbl1.lbl2, ..}` | `e{lbl2=lbl1.lbl2, ..}` when record wild cards are enabled |
 
 ### Lexer
 
@@ -153,7 +154,7 @@ fexp    :: { ECP }
 
 #### Field updates
 
-To support the new forms of '.' field update *aexp* production is extended.
+To support the new forms of '.' field update, the *aexp* production is extended.
 <br/>
 <br> *aexp* → *aexp⟨qcon⟩* { *pbind* , … , *pbind* }
 <br/>*pbind* -> *qvar*=*exp* | *var* *fieldids*=*exp* | *var* *fieldids* *qop* *exp* | *var* [*fieldids*]
@@ -255,6 +256,8 @@ A full, rigorous set of examples (as tests) are available in the examples direct
 
 **Stealing a.b syntax:** The `a.b` syntax is commonly used in conjunction with the `lens` library, e.g. `expr^.field1.field2`. Treating `a.b` without spaces as a record projection would break such code. The alternatives would be to use a library with a different lens composition operator (e.g. `optics`), introduce an alias in `lens` for `.` (perhaps `%`), write such expressions with spaces, or not enable this extension when also using lenses. While unfortunate, we consider that people who are heavy users of lens don't feel the problems of inadequate records as strongly, so the problems are lessened.
 
+**Rebindable syntax:** When `RebindableSyntax` is enabled the `getField`, `setField` and `modifyField` functions are those in scope, rather than those in `GHC.Records`.
+
 **Enabled extensions:** When `RecordDotSyntax` is enabled it should imply the `NoFieldSelectors` extension and allow duplicate record field labels. It would be possible for `RecordDotSyntax` to imply `DuplicateRecordFields`, but we suspect that if people become comfortable with `RecordDotSyntax` then there will be a desire to remove the `DuplicateRecordFields` extension, so we don't want to build on top of it.
 
 ## Costs and Drawbacks
@@ -270,7 +273,7 @@ This proposal advocates a different style of writing Haskell records, which is d
 The primary alternatives to the problem of records are:
 
 * Using the [`lens` library](https://hackage.haskell.org/package/lens). The concept of lenses is very powerful, but that power can be [complex to use](https://twitter.com/fylwind/status/549342595940237312?lang=en). In many ways lenses let you abstract over record fields, but Haskell has neglected the "unabstracted" case of concrete fields.
-* The [`DuplicateRecordFields` extension](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#duplicate-record-fields) is designed to solve similar problems. We evaluated this extension as the basis for DAML, but found it sorely lacking. The rules about what types must be inferred by what point are cumbersome and tricky to work with.
+* The [`DuplicateRecordFields` extension](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#duplicate-record-fields) is designed to solve similar problems. We evaluated this extension as the basis for DAML, but found it lacking. The rules about what types must be inferred by what point are cumbersome and tricky to work with, requiring a clear understanding of at what stage a type is inferred by the compiler.
 * Some style guidelines mandate that each record should be in a separate module. That works, but then requires qualified modules to access fields - e.g. `Person.name (Company.owner c)`. Forcing the structure of the module system to follow the records also makes circular dependencies vastly more likely, leading to complications such as boot files that are ideally avoided.
 * Some style guidelines suggest prefixing each record field with the type name, e.g. `personName (companyOwner c)`. While it works, it isn't pleasant, and many libraries then abbreviate the types to lead to code such as `prsnName (coOwner c)`, which can increase confusion.
 * There is a [GHC plugin and preprocessor](https://github.com/ndmitchell/record-dot-preprocessor) that both implement much of this proposal. While both have seen light use, their ergonomics are not ideal. The preprocessor struggles to give good location information given the necessary expansion of substrings. The plugin cannot support the full proposal and leads to error messages mentioning `getField`. Suggesting either a preprocessor or plugin to beginners is not an adequate answer. One of the huge benefits to the `a.b` style in other languages is support for completion in IDE's, which is quite hard to give for something not actually in the language.
@@ -280,7 +283,11 @@ All these approaches are currently used, and represent the "status quo", where H
 
 ## Unresolved Questions
 
-There are no unresolved questions at this time.
+Below are some possible variations on this plan, but we advocate the choices made above:
+
+* Should `RecordDotSyntax` imply `NoFieldSelectors`? They are often likely to be used in conjunction, but they aren't inseparable.
+* It seems appealing that `a{field += 1}` would be the syntax for incrementing a field. However, `+=` is a valid operator (would that be `a{field +== 1}`?) and for infix operators like `div` would that be `\`div\`=`?
+* We do not extend pattern matching, although it would be possible for `P{foo.bar=Just x}` to be defined.
 
 ## Implementation Plan
 
