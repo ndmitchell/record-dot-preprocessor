@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2.1, released 2019-11-02
     #25, support promoted data kinds, e.g. 'Int
     #12, support more things around GADTs
     Make sure the plugin errors on update{}
