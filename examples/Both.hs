@@ -1,7 +1,7 @@
 -- Test for everything that is supported by both the plugin and the preprocessor
 
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures #-} -- can we produce -Wall clean code
-{-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving #-} -- also tests we put language extensions before imports
+{-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds #-} -- also tests we put language extensions before imports
 
 import Control.Exception
 
@@ -57,6 +57,9 @@ test1 = do
     (Human "a" "b").name === "a" -- comment here
     (Nonhuman "x").name === "x"
     fails (Nonhuman "x").job
+
+
+type Type = '[Int]
 
 
 ---------------------------------------------------------------------

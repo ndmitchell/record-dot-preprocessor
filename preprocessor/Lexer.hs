@@ -57,6 +57,8 @@ reposition = go
 -- We take a lot of liberties with lexemes around module qualification, because we want to make fields magic
 -- we ignore numbers entirely because they don't have any impact on what we want to do
 lexerLexeme :: String -> (String, String)
+lexerLexeme ('\'':x:'\'':xs) = (['\'',x,'\''], xs)
+lexerLexeme ('\'':x:xs) | x /= '\'' = ("\'", x:xs) -- might be a data kind, see #25
 lexerLexeme (open:xs) | open == '\'' || open == '\"' = seen [open] $ go xs
     where
         go (x:xs) | x == open = ([x], xs)
