@@ -24,7 +24,7 @@ First install `record-dot-preprocessor` with either `stack install record-dot-pr
 
 The GHC plugin only runs on GHC 8.6 or higher, [doesn't work on Windows](https://gitlab.haskell.org/ghc/ghc/issues/16405) and has much better error messages. In contrast, the preprocessor runs everywhere and has more features.
 
-You must make sure that the `OPTIONS_GHC` is applied both to the file where your records are defined, and where the record syntax is used. The resulting program will require the [`record-hasfield` library](https://hackage.haskell.org/package/record-hasfield).
+You must make sure that the `OPTIONS_GHC` is applied both to the file _where your records are defined_, and _where the record syntax is used_. The resulting program will require the [`record-hasfield` library](https://hackage.haskell.org/package/record-hasfield).
 
 ## What magic is available, precisely?
 
