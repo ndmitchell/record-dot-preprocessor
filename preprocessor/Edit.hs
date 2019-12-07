@@ -109,6 +109,7 @@ editLoop (Paren start@(L "(") (spanFields -> (fields@(_:_), whitespace, [])) end
 editLoop (e:Paren (L "{") inner end:xs)
     | not $ isCtor e
     , not $ isPL "::" e
+    , getWhite e == ""
     , Just updates <- mapM f $ split (isPL ",") inner
     , let end2 = [Item end{lexeme=""} | whitespace end /= ""]
     = editLoop $ renderUpdate (Update e updates) : end2 ++ xs

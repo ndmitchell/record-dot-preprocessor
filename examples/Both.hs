@@ -4,9 +4,10 @@
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds #-} -- also tests we put language extensions before imports
 
 import Control.Exception
+import Data.Version
 
 main :: IO ()
-main = test1 >> test2 >> test3 >> test4 >> putStrLn "All worked"
+main = test1 >> test2 >> test3 >> test4 >> test5 >> putStrLn "All worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
@@ -150,3 +151,13 @@ test4 = do
     f6 :: BB -> BB; f6 s = s{yy = s.yy{xx = s.yy.xx + 1}, zz = s.zz{xx = (\ x -> x * x) s.zz{xx = s.zz.xx}.xx}}
     f7 :: [AA] -> [Int]; f7 l = map (.xx) l
     f8 :: [BB] -> [Int]; f8 l = map (.yy.xx) l
+
+-- ---------------------------------------------------------------------
+-- Test we can still non-instance fields
+
+test5 :: IO ()
+test5 = do
+    let v = makeVersion [1,2,3]
+    versionBranch v === [1,2,3]
+    -- the space before the { stops it from using record update
+    showVersion (v {versionBranch=[1]}) === "1"
