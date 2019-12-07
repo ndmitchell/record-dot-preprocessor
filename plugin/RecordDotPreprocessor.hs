@@ -215,4 +215,12 @@ mkApp x y = noL $ HsApp noE x y
 
 -- | Are the end of a and the start of b next to each other, no white space
 adjacent :: Located a -> Located b -> Bool
-adjacent (L a _) (L b _) = isGoodSrcSpan a && srcSpanEnd a == srcSpanStart b
+adjacent = adjacentBy 0
+
+-- | Are the end of a and the start of b next to each other, no white space
+adjacentBy :: Int -> Located a -> Located b -> Bool
+adjacentBy i (L (srcSpanEnd -> RealSrcLoc a) _) (L (srcSpanStart -> RealSrcLoc b) _) =
+    srcLocFile a == srcLocFile b &&
+    srcLocLine a == srcLocLine b &&
+    srcLocCol a + i == srcLocCol b
+adjacentBy _ _ _ = False
