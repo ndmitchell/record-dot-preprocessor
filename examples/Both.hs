@@ -43,8 +43,8 @@ test1 = do
     (foo2.foo1)._2 === 2
 
     -- test expr{lbl = val}
-    foo {foo1 = "a"} === Foo "a" 2
-    foo {foo1 = "a", foo1 = "b"} === foo{foo1 = "b"}
+    foo{foo1 = "a"} === Foo "a" 2
+    foo{foo1 = "a", foo1 = "b"} === foo{foo1 = "b"}
     null (foo{foo1 = []}.foo1) === True
     foo{foo1 = "a"}.foo1 === "a"
     let _foo2 = 8 in foo{_foo2} === Foo "test" 8
@@ -142,11 +142,11 @@ test4 = do
   f7 [AA 1, AA 2, AA 3] === [1, 2, 3]
   f8 [BB (AA 1) (AA 2), BB (AA 2) (AA 3), BB (AA 3) (AA 4)] === [1, 2, 3]
   where
-    f1 :: CC -> Int -> Int -> CC; f1 s t u = s {aa = t, bb = u}
-    f2 :: CC -> Int -> Int -> CC; f2 s t u = s {aa = t + u}
-    f3 :: AA -> AA; f3 s = s {xx = s.xx + 1}
-    f4 :: BB -> BB; f4 s = s {yy = s.yy, zz = s.zz{xx = 4}}
-    f5 :: BB -> BB; f5 s = s {yy = s.yy, zz = s.zz{xx = (\ x -> x * x) s.zz.xx}}
+    f1 :: CC -> Int -> Int -> CC; f1 s t u = s{aa = t, bb = u}
+    f2 :: CC -> Int -> Int -> CC; f2 s t u = s{aa = t + u}
+    f3 :: AA -> AA; f3 s = s{xx = s.xx + 1}
+    f4 :: BB -> BB; f4 s = s{yy = s.yy, zz = s.zz{xx = 4}}
+    f5 :: BB -> BB; f5 s = s{yy = s.yy, zz = s.zz{xx = (\ x -> x * x) s.zz.xx}}
     f6 :: BB -> BB; f6 s = s{yy = s.yy{xx = s.yy.xx + 1}, zz = s.zz{xx = (\ x -> x * x) s.zz{xx = s.zz.xx}.xx}}
     f7 :: [AA] -> [Int]; f7 l = map (.xx) l
     f8 :: [BB] -> [Int]; f8 l = map (.yy.xx) l
