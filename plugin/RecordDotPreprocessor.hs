@@ -152,8 +152,9 @@ onExp (L o (SectionR _ mid@(isDot -> True) rhs))
     = setL o $ foldl1 (\x y -> noL $ OpApp noE x (mkVar var_dot) y) $ map (mkVar var_getField `mkAppType`) $ reverse sels
 
 -- Turn a{b=c, ...} into setField calls
-onExp (L o upd@RecordUpd{rupd_expr,rupd_flds=L _ (HsRecField (fmap rdrNameAmbiguousFieldOcc -> lbl) arg pun):flds})
+onExp (L o upd@RecordUpd{rupd_expr,rupd_flds=fld@(L _ (HsRecField (fmap rdrNameAmbiguousFieldOcc -> lbl) arg pun)):flds})
     | let sel = mkSelector lbl
+    , adjacentBy 1 rupd_expr fld
     , let arg2 = if pun then noL $ HsVar noE lbl else arg
     , let expr = mkParen $ mkVar var_setField `mkAppType` sel `mkApp` rupd_expr `mkApp` arg2  -- 'rupd_expr' never needs bracketing.
     = onExp $ if null flds then expr else L o upd{rupd_expr=expr,rupd_flds=flds}
