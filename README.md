@@ -1,6 +1,6 @@
 # record-dot-preprocessor [![Hackage version](https://img.shields.io/hackage/v/record-dot-preprocessor.svg?label=Hackage)](https://hackage.haskell.org/package/record-dot-preprocessor) [![Stackage version](https://www.stackage.org/package/record-dot-preprocessor/badge/nightly?label=Stackage)](https://www.stackage.org/package/record-dot-preprocessor) [![Build status](https://img.shields.io/travis/ndmitchell/record-dot-preprocessor/master.svg?label=Build)](https://travis-ci.org/ndmitchell/record-dot-preprocessor)
 
-In almost every programming language `a.b` will get the `b` field from the `a` data type, and many different data types can have a `b` field. The reason this feature is ubiquitous is because it's _useful_. The `record-dot-preprocessor` brings this feature to Haskell. Some examples:
+In almost every programming language `a.b` will get the `b` field from the `a` data type, and many different data types can have a `b` field. The reason this feature is ubiquitous is because it's _useful_. This feature has been [proposed for Haskell](https://github.com/ghc-proposals/ghc-proposals/pull/282) as `RecordDotSyntax`. The `record-dot-preprocessor` brings this feature to Haskell today. Some examples:
 
 ```haskell
 data Company = Company {name :: String, owner :: Person}
