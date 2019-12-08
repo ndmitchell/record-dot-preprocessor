@@ -139,7 +139,7 @@ onExp (L o (OpApp _ lhs mid@(isDot -> True) rhs))
     , (rhsApp, rhs) <- getAppLHS rhs
     , (rhsRec, rhs) <- getRec rhs
     , Just sel <- getSelector rhs
-    = onExp $ lhsOp $ rhsApp $ lhsApp $ rhsRec $ setL o $ mkParen $ mkVar var_getField `mkAppType` sel `mkApp` lhs
+    = onExp $ setL o $ lhsOp $ rhsApp $ lhsApp $ rhsRec $ mkParen $ mkVar var_getField `mkAppType` sel `mkApp` lhs
 
 -- Turn (.foo.bar) into getField calls
 onExp (L o (SectionR _ mid@(isDot -> True) rhs))
@@ -201,7 +201,8 @@ getOpRHS x = (id, x)
 
 -- | Lens on: [r]{f1=x1}{f2=x2}
 getRec :: LHsExpr GhcPs -> (LHsExpr GhcPs -> LHsExpr GhcPs, LHsExpr GhcPs)
-getRec (L l r@RecordUpd{}) = first (\c x -> L l r{rupd_expr=c x}) $ getRec $ rupd_expr r
+-- important to copy the location back over, since we check the whitespace hasn't changed
+getRec (L l r@RecordUpd{}) = first (\c x -> L l r{rupd_expr=setL (getLoc $ rupd_expr r) $ c x}) $ getRec $ rupd_expr r
 getRec x = (id, x)
 
 -- | Is it equal to: .
