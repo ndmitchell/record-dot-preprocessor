@@ -160,8 +160,8 @@ onExp (L o upd@RecordUpd{rupd_expr,rupd_flds=fld:flds})
         f expr (L _ (HsRecField (fmap rdrNameAmbiguousFieldOcc -> lbl) arg pun) : flds)
             | let sel = mkSelector lbl
             , let arg2 = if pun then noL $ HsVar noE lbl else arg
-            , let expr = mkParen $ mkVar var_setField `mkAppType` sel `mkApp` rupd_expr `mkApp` arg2  -- 'rupd_expr' never needs bracketing.
-            = f expr flds
+            , let expr2 = mkParen $ mkVar var_setField `mkAppType` sel `mkApp` expr `mkApp` arg2  -- 'expr' never needs bracketing.
+            = f expr2 flds
 
 onExp x = descend onExp x
 
