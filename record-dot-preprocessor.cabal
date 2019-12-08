@@ -1,7 +1,7 @@
 cabal-version:      >= 1.18
 build-type:         Simple
 name:               record-dot-preprocessor
-version:            0.2.1
+version:            0.2.2
 license:            BSD3
 x-license:          BSD-3-Clause OR Apache-2.0
 license-file:       LICENSE
