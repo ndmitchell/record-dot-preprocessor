@@ -31,7 +31,7 @@ You must make sure that the `OPTIONS_GHC` is applied both to the file _where you
 Using the preprocessor or the GHC plugin you can write:
 
 * `expr.lbl` is equivalent to `getField @"lbl" expr` (the `.` cannot have whitespace on either side).
-* `expr{lbl = val}` is equivalent to `setField @"lbl" expr val`.
+* `expr{lbl = val}` is equivalent to `setField @"lbl" expr val` (the `{` cannot have whitespace before it).
 * `(.lbl)` is equivalent to `(\x -> x.lbl)` (the `.` cannot have whitespace after).
 
 Using the preprocessor, but _not_ the GHC plugin:
@@ -52,3 +52,7 @@ These forms combine to offer the identities:
 ## How does this magic compare to other magic?
 
 Records in Haskell are well known to be [pretty lousy](https://www.yesodweb.com/blog/2011/09/limitations-of-haskell). There are [many proposals](https://wiki.haskell.org/Extensible_record) that aim to make Haskell records more powerful using dark arts taken from type systems and category theory. This preprocessor aims for simplicity - combining existing elements into a coherent story. The aim is to do no worse than Java, not achieve perfection.
+
+## Any advice for using this magic?
+
+The most important consideration is that all records used by `a.b` or `a{b=c}` syntax _must_ have `HasField` instances, which requires either running the preprocessor/plugin over the module defining them, or writing orphan instances by hand. To use records which don't have such instances use normal selector functions (e.g. `b a`) and insert a space before the `{` (e.g. `a {b=c}`).
