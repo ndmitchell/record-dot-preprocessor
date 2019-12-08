@@ -139,7 +139,7 @@ onExp (L o (OpApp _ lhs mid@(isDot -> True) rhs))
     , (rhsApp, rhs) <- getAppLHS rhs
     , (rhsRec, rhs) <- getRec rhs
     , Just sel <- getSelector rhs
-    = onExp $ lhsOp $ rhsApp $ lhsApp $ rhsRec $ mkParen $ setL o $ mkVar var_getField `mkAppType` sel `mkApp` lhs
+    = onExp $ lhsOp $ rhsApp $ lhsApp $ rhsRec $ setL o $ mkParen $ mkVar var_getField `mkAppType` sel `mkApp` lhs
 
 -- Turn (.foo.bar) into getField calls
 onExp (L o (SectionR _ mid@(isDot -> True) rhs))
