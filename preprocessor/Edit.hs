@@ -182,7 +182,7 @@ data Record = Record
 
 -- | Find all the records and parse them
 parseRecords :: [PL] -> [Record]
-parseRecords = mapMaybe whole . drop 1 . split (isPL "data" ||^ isPL "newtype")
+parseRecords = mapMaybe whole . drop1 . split (isPL "data" ||^ isPL "newtype")
     where
         whole :: [PL] -> Maybe Record
         whole xs
