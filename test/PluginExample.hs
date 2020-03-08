@@ -4,14 +4,14 @@
 
 module PluginExample where
 main :: IO ()
-main = return ()
+main = pure ()
 
 #elif mingw32_HOST_OS
 
 module PluginExample where
 import RecordDotPreprocessor() -- To check the plugin compiles
 main :: IO ()
-main = return ()
+main = pure ()
 
 #else
 

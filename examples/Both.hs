@@ -10,13 +10,13 @@ main :: IO ()
 main = test1 >> test2 >> test3 >> test4 >> test5 >> putStrLn "All worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
-a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
+a === b = if a == b then pure () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
 
 fails :: a -> IO ()
 fails val = do
     res <- try $ evaluate val
     case res of
-        Left e -> let _ = e :: SomeException in return ()
+        Left e -> let _ = e :: SomeException in pure ()
         Right _ -> fail "Expected an exception"
 
 

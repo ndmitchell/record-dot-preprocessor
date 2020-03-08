@@ -3,4 +3,4 @@
 :set -package=ghc
 :set -hide-package=ghc-lib-parser
 :load test/Test.hs
-:def test \x -> return $ ":main " ++ x
+:def test \x -> pure $ ":main " ++ x

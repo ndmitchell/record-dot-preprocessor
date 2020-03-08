@@ -12,7 +12,7 @@ import Data.List
 
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
-a === b = if a == b then return () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
+a === b = if a == b then pure () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
 
 
 -- can you deal with multiple alternatives
