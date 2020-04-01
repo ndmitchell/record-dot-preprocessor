@@ -5,9 +5,10 @@
 
 import Control.Exception
 import Data.Version
+import Data.Proxy
 
 main :: IO ()
-main = test1 >> test2 >> test3 >> test4 >> test5 >> putStrLn "All worked"
+main = test1 >> test2 >> test3 >> test4 >> test5 >> test6 >> putStrLn "All worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then pure () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
@@ -58,9 +59,6 @@ test1 = do
     (Human "a" "b").name === "a" -- comment here
     (Nonhuman "x").name === "x"
     fails (Nonhuman "x").job
-
-
-type Type = '[Int]
 
 
 ---------------------------------------------------------------------
@@ -161,3 +159,16 @@ test5 = do
     versionBranch v === [1,2,3]
     -- the space before the { stops it from using record update
     showVersion (v {versionBranch=[1]}) === "1"
+
+-- ---------------------------------------------------------------------
+-- Deal with type promotion
+
+type Type = '[Int]
+
+typeProxy :: Proxy Type
+typeProxy = Proxy
+
+test6 :: IO ()
+test6 = do
+    _ <- evaluate typeProxy
+    return ()
