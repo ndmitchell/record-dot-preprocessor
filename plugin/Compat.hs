@@ -70,7 +70,7 @@ compat_m_pats = map noL
 
 qualifiedImplicitImport :: ModuleName -> LImportDecl GhcPs
 
-#if __GLASGOW_HASKELL__ < 807
+#if __GLASGOW_HASKELL__ < 809
 
 -- GHC 8.8
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing False False
