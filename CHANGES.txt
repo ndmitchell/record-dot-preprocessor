@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    Support GHC 8.10
 0.2.2, released 2019-12-08
     #26, make a {b=c} not desugar to setField
 0.2.1, released 2019-11-02

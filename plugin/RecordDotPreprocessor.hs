@@ -11,7 +11,6 @@ import Compat
 import Bag
 import qualified GHC
 import qualified GhcPlugins as GHC
-import HsSyn
 import SrcLoc
 import TcEvidence
 
@@ -51,8 +50,7 @@ onModule x = x { hsmodImports = onImports $ hsmodImports x
 
 
 onImports :: [LImportDecl GhcPs] -> [LImportDecl GhcPs]
-onImports = (:) $ noL $ GHC.ImportDecl GHC.NoExt GHC.NoSourceText (noL mod_records)
-    Nothing False False True {- qualified -} True {- implicit -} Nothing Nothing
+onImports = (:) $ qualifiedImplicitImport mod_records
 
 
 {-
