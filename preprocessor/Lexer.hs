@@ -101,11 +101,17 @@ unlexerFile src xs =
     dropping 1 ++
     go 1 True [(line, lexeme ++ whitespace) | Lexeme{..} <- xs]
     where
-        go :: Int -> Bool -> [(Int, String)] -> String
-        go doc drp ((i, x):xs) =
-            (if doc /= i && i /= 0 && drp then dropping i else "") ++
+        go
+            :: Int -- ^ What line does GHC think we are on
+            -> Bool -- ^ Are we at the start of a line
+            -> [(Int, String)] -- ^ (original line, lexemes followed by their whitespace)
+            -> String
+        go ghcLine startLine ((i, x):xs) =
+            (if emitDropping then dropping i else "") ++
             x ++
-            go ((if i == 0 then doc else i) + length (filter (== '\n') x)) ("\n" `isSuffixOf` x) xs
+            go ((if emitDropping then i else ghcLine) + length (filter (== '\n') x)) ("\n" `isSuffixOf` x) xs
+            where emitDropping = ghcLine /= i && i /= 0 && startLine
         go _ _ [] = ""
 
+        -- write out a line marker with a trailing newline
         dropping n = "{-# LINE " ++ show n ++ " " ++ show src ++ " #-}\n"
