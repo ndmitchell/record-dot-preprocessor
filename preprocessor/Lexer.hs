@@ -99,7 +99,12 @@ seen xs = first (xs++)
 unlexerFile :: FilePath -> [Lexeme] -> String
 unlexerFile src xs =
     dropping 1 ++
-    go 1 True [(line, lexeme ++ whitespace) | Lexeme{..} <- xs]
+    -- we split the whitespace up to increase the chances of startLine being true below
+    -- pretty ugly code...
+    go 1 True (concat
+        [ [(line, lexeme ++ w1 ++ take 1 w2)
+          ,((if line == 0 then 0 else line + length (filter (== '\n') (lexeme ++ w1 ++ take 1 w2))), drop 1 w2)]
+        | Lexeme{..} <- xs, let (w1,w2) = break (== '\n') whitespace])
     where
         go
             :: Int -- ^ What line does GHC think we are on
