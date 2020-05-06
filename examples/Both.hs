@@ -8,7 +8,7 @@ import Data.Version
 import Data.Proxy
 
 main :: IO ()
-main = test1 >> test2 >> test3 >> test4 >> test5 >> test6 >> putStrLn "All worked"
+main = test1 >> test2 >> test3 >> test4 >> test5 >> test6 >> test7 >> putStrLn "All worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then pure () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
@@ -178,3 +178,7 @@ test6 = do
 -- Deal with kind signatures
 
 data UserF (f :: * -> *) = UserF { userf_name :: String }
+
+test7 :: IO ()
+test7 = do
+    (UserF "test").userf_name === "test"
