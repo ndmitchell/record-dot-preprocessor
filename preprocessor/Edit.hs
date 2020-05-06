@@ -188,8 +188,13 @@ parseRecords = mapMaybe whole . drop1 . split (isPL "data" ||^ isPL "newtype")
         whole xs
             | PL typeName : xs <- xs
             , (typeArgs, _:xs) <- break (isPL "=" ||^ isPL "where") xs
-            = Just $ Record typeName [x | PL x <- typeArgs] $ nubOrd $ ctor xs
+            = Just $ Record typeName (mapMaybe typeArg typeArgs) $ nubOrd $ ctor xs
         whole _ = Nothing
+
+        -- some types are raw, some are in brackets (with a kind signature)
+        typeArg (PL x) = Just x
+        typeArg (Paren _ (x:_) _) = typeArg x
+        typeArg _ = Nothing
 
         ctor xs
             | xs <- dropContext xs

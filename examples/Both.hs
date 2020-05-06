@@ -1,7 +1,7 @@
 -- Test for everything that is supported by both the plugin and the preprocessor
 
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures #-} -- can we produce -Wall clean code
-{-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds #-} -- also tests we put language extensions before imports
+{-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds, KindSignatures #-} -- also tests we put language extensions before imports
 
 import Control.Exception
 import Data.Version
@@ -172,3 +172,9 @@ test6 :: IO ()
 test6 = do
     _ <- evaluate typeProxy
     return ()
+
+
+-- ---------------------------------------------------------------------
+-- Deal with kind signatures
+
+data UserF (f :: * -> *) = UserF { userf_name :: String }

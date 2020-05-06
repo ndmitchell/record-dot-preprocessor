@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    #28, deal with kind signatures on data types
 0.2.4, released 2020-05-04
     #3, emit more LINE declarations
 0.2.3, released 2020-04-01
