@@ -4,7 +4,7 @@
 module Lexer(Lexeme(..), lexer, unlexerFile) where
 
 import Data.Char
-import Data.List
+import Data.List.Extra
 import Data.Tuple.Extra
 
 -- | A lexeme of text, approx some letters followed by some space.
@@ -103,7 +103,7 @@ unlexerFile src xs =
     -- pretty ugly code...
     go 1 True (concat
         [ [(line, lexeme ++ w1 ++ take 1 w2)
-          ,(if line == 0 then 0 else line + length (filter (== '\n') (lexeme ++ w1 ++ take 1 w2)), drop 1 w2)]
+          ,(if line == 0 then 0 else line + length (filter (== '\n') (lexeme ++ w1 ++ take 1 w2)), drop1 w2)]
         | Lexeme{..} <- xs, let (w1,w2) = break (== '\n') whitespace])
     where
         go
