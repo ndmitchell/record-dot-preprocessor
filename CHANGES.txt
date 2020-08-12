@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    #30, don't warn about incomplete record updates
     #31, allow fields to have names that clash with functions
 0.2.5, released 2020-05-06
     #28, deal with kind signatures on data types
