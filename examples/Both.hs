@@ -1,6 +1,6 @@
 -- Test for everything that is supported by both the plugin and the preprocessor
 
-{-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wincomplete-record-updates #-} -- can we produce -Wall clean code
+{-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wincomplete-record-updates -Wno-unused-top-binds #-} -- can we produce -Wall clean code
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds, KindSignatures #-} -- also tests we put language extensions before imports
 
 import Control.Exception
