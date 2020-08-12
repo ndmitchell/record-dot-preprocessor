@@ -161,10 +161,28 @@ renderUpdate (Update e upd) = case unsnoc upd of
 editAddInstances :: [PL] -> [PL]
 editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
     [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
-      "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ " :: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
+      "where hasField _r = (\\_x -> case _r of {" ++ intercalate " ; "
+        [ if fname `elem` map fst fields then
+            "(" ++ cname ++ " " ++
+                unwords [if fst field == fname then "_" else "_x" ++ show i | (i, field) <- zipFrom 1 fields] ++
+            ") -> " ++ cname ++ " " ++
+                unwords [if fst field == fname then "_x" else "_x" ++ show i | (i, field) <- zipFrom 1 fields]
+          else
+            cname ++ "{} -> Prelude.error " ++ show ("Cannot update " ++ msg cname)
+        | Ctor cname fields <- ctors] ++
+        "}, case _r of {" ++ intercalate " ; "
+        [ if fname `elem` map fst fields then
+            "(" ++ cname ++ " " ++
+                unwords [if fst field == fname then "_x1" else "_" | field <- fields] ++
+            ") -> _x1"
+          else
+            cname ++ "{} -> Prelude.error " ++ show ("Cannot get " ++ msg cname)
+        | Ctor cname fields <- ctors] ++
+      "})"
     | Record rname rargs ctors <- parseRecords xs
     , let rtyp = "(" ++ unwords (rname : rargs) ++ ")"
     , (fname, ftyp) <- nubOrd $ concatMap ctorFields ctors
+    , let msg cname = "field " ++ show fname ++ " of type " ++ show rname ++ " with constructor " ++ show cname
     ]
 
 -- | Represent a record, ignoring constructors. For example:

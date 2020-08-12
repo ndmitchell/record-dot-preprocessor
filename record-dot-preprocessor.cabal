@@ -22,6 +22,7 @@ extra-doc-files:
 tested-with:        GHC==8.10, GHC==8.8, GHC==8.6, GHC==8.4
 extra-source-files:
     examples/Both.hs
+    examples/Both2.hs
     examples/Preprocessor.hs
     examples/Readme.hs
 
