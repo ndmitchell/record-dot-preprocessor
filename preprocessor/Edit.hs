@@ -162,9 +162,9 @@ editAddInstances :: [PL] -> [PL]
 editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
     [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
       "where hasField _r = (\\_x -> _r{" ++ fname ++ "=_x}, (" ++ fname ++ " :: " ++ rtyp ++ " -> " ++ ftyp ++ ") _r)"
-    | Record rname rargs fields <- parseRecords xs
+    | Record rname rargs ctors <- parseRecords xs
     , let rtyp = "(" ++ unwords (rname : rargs) ++ ")"
-    , (fname, ftyp) <- fields
+    , (fname, ftyp) <- nubOrd $ concatMap ctorFields ctors
     ]
 
 -- | Represent a record, ignoring constructors. For example:
@@ -173,12 +173,23 @@ editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
 --
 --   Gets parsed as:
 --
--- > Record "Type"] ["a","b"] [("field1","Int"), ("field2","String"), ("field3","[Bool]")]
+-- > Record "Type" ["a","b"]
+-- >   [Ctor "Ctor1" [("field1","Int"), ("field2","String")]
+-- >   [Ctor "Ctor2" [("field1","Int"), ("field3","[Bool]")]
 data Record = Record
-    String -- Name of the type (not constructor)
-    [String] -- Type arguments
-    [(String, String)] -- (field, type) - nub'd
+    {recordName :: String -- Name of the type (not constructor)
+    ,recordTyArgs :: [String] -- Type arguments
+    ,recordCtors :: [Ctor]
+    }
     deriving Show
+
+data Ctor = Ctor
+    {ctorName :: String -- Name of constructor
+    ,ctorFields :: [(String, String)] -- (field, type)
+    }
+    deriving Show
+
+
 
 -- | Find all the records and parse them
 parseRecords :: [PL] -> [Record]
@@ -188,7 +199,7 @@ parseRecords = mapMaybe whole . drop1 . split (isPL "data" ||^ isPL "newtype")
         whole xs
             | PL typeName : xs <- xs
             , (typeArgs, _:xs) <- break (isPL "=" ||^ isPL "where") xs
-            = Just $ Record typeName (mapMaybe typeArg typeArgs) $ nubOrd $ ctor xs
+            = Just $ Record typeName (mapMaybe typeArg typeArgs) $ ctor xs
         whole _ = Nothing
 
         -- some types are raw, some are in brackets (with a kind signature)
@@ -202,7 +213,7 @@ parseRecords = mapMaybe whole . drop1 . split (isPL "data" ||^ isPL "newtype")
             , xs <- dropWhile (isPL "::") xs
             , xs <- dropContext xs
             , Paren (L "{") inner _ : xs <- xs
-            = fields (map (break (isPL "::")) $ split (isPL ",") inner) ++
+            = Ctor ctorName (fields $ map (break (isPL "::")) $ split (isPL ",") inner) :
               case xs of
                 PL "|":xs -> ctor xs
                 _ -> []
