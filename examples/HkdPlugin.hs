@@ -4,6 +4,7 @@
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds, KindSignatures, TypeFamilies #-} -- also tests we put language extensions before imports
 
 import Data.Functor.Identity
+import Control.Monad (unless)
 import Database.Beam
 import qualified Database.Beam as Beam
 
@@ -20,8 +21,13 @@ data Foo1 f = Foo1 {
   baz1 :: String
   }
 
+data Foo2 f = Foo2 {
+  bar2 :: C (Nullable f) Int,
+  baz2 :: String
+  }
+
 (===) :: (Show a, Eq a) => a -> a -> IO ()
-a === b = if a == b then pure () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
+a === b = unless (a == b) (fail $ "Mismatch, " ++ show a ++ " /= " ++ show b)
 
 main :: IO ()
 main = test1 >> putStrLn "All worked"
@@ -32,9 +38,14 @@ tstObj = Foo 1 "test"
 tstObj1 :: Foo1 Identity
 tstObj1 = Foo1 1 "test"
 
+tstObj2 :: Foo2 Identity
+tstObj2 = Foo2 (Just 1) "test"
+
 test1 :: IO ()
 test1 = do
   tstObj.baz === "test"
   tstObj.bar === 1
   tstObj1.baz1 === "test"
   tstObj1.bar1 === 1
+  tstObj2.baz2 === "test"
+  tstObj2.bar2 === Just 1

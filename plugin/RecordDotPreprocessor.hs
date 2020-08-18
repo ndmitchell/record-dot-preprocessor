@@ -36,6 +36,9 @@ setL l (L _ x) = L l x
 mod_records :: GHC.ModuleName
 mod_records = GHC.mkModuleName "GHC.Records.Extra"
 
+mod_maybe :: GHC.ModuleName
+mod_maybe = GHC.mkModuleName "GHC.Maybe"
+
 mod_beam :: GHC.ModuleName
 mod_beam = GHC.mkModuleName "Database.Beam"
 
@@ -47,6 +50,7 @@ var_IdentityTy = GHC.mkRdrQual mod_functorIdentity $ GHC.mkTcOcc "Identity"
 
 var_HasField, var_hasField, var_getField, var_setField, var_dot :: GHC.RdrName
 var_HasField = GHC.mkRdrQual mod_records $ GHC.mkClsOcc "HasField"
+var_Maybe = GHC.mkRdrQual mod_maybe $ GHC.mkTcOcc "Maybe"
 var_hasField = GHC.mkRdrUnqual $ GHC.mkVarOcc "hasField"
 var_getField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "getField"
 var_setField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "setField"
@@ -60,10 +64,14 @@ onModule x = x { hsmodImports = onImports $ hsmodImports x
 
 
 onImports :: [LImportDecl GhcPs] -> [LImportDecl GhcPs]
-onImports is = qualifiedImplicitImport mod_records : qualifiedImplicitImport mod_functorIdentity : is
+onImports is = qualifiedImplicitImport mod_records
+             : qualifiedImplicitImport mod_functorIdentity
+             : qualifiedImplicitImport mod_maybe
+             : is
 
 
-pattern TypeVar idP <- HsTyVar _ _ (L _ idP)
+pattern LTypeVar idP <- L _ (HsTyVar _ _ (L _ idP))
+pattern LTypeApp lt rt <- (L _ (HsAppTy _ lt rt))
 
 {-
 instance Z.HasField "name" (Company) (String) where hasField _r = (\_x -> _r{name=_x}, (name:: (Company) -> String) _r)
@@ -76,23 +84,32 @@ instanceTemplate ctx selector record field = ClsInstD noE $ ClsInstDecl noE (HsI
     where
         checkRecordTy :: Maybe (IdP GhcPs, HsType GhcPs)
         checkRecordTy = case record of
-          HsAppTy x l (L _ (TypeVar idPVar)) -> let
+          HsAppTy x l (LTypeVar idPVar) -> let
             newTy = HsAppTy x l (noL $ HsTyVar noE GHC.NotPromoted (noL var_IdentityTy))
             in Just (idPVar, newTy)
           _ -> Nothing
 
         checkFieldTy :: IdP GhcPs -> Maybe (HsType GhcPs)
         checkFieldTy fIdP = case field of
-          HsAppTy _ (L _ (HsAppTy _ (L _ (TypeVar famC)) (L _ (TypeVar f)))) (L _ fType) | fIdP == f -> let
-            isHkdTypeFamily = case famC of
-              GHC.Orig (GHC.Module _ modName) _ -> isDatabaseBeamImport modName
-              GHC.Qual modName _                -> case lookUpQualImport ctx modName of
-                Just modFullName -> isDatabaseBeamImport modFullName
-                _ -> False
-              GHC.Unqual n -> GHC.occNameString n == "C" && hasUnqualImport ctx mod_beam
-              _ -> False
-            in if isHkdTypeFamily then Just fType else Nothing
+          HsAppTy _ (LTypeApp (LTypeVar famC) (LTypeVar f)) (L _ fType)
+            | fIdP == f -> if isBeamType "C" famC then Just fType else Nothing
+
+          HsAppTy _ (LTypeApp (LTypeVar famC) (L _ (HsParTy _ (LTypeApp (LTypeVar modif) (LTypeVar f))))) (L _ fType) ->  let
+            isFFromDataDecl = fIdP == f
+            isModifierNullable = isBeamType "Nullable" modif
+            isBeamC = isBeamType "C" famC
+            maybeTy = HsAppTy noE (noL $ HsTyVar noE GHC.NotPromoted (noL var_Maybe)) (noL fType)
+            in if isFFromDataDecl && isModifierNullable && isBeamC then Just maybeTy else Nothing
+
           _ -> Nothing
+
+        isBeamType name ty = case ty of
+          GHC.Orig (GHC.Module _ modName) _ -> isDatabaseBeamImport modName
+          GHC.Qual modName _                -> case lookUpQualImport ctx modName of
+            Just modFullName -> isDatabaseBeamImport modFullName
+            _ -> False
+          GHC.Unqual n -> GHC.occNameString n == name && hasUnqualImport ctx mod_beam
+          _ -> False
 
         isDatabaseBeamImport :: GHC.ModuleName -> Bool
         isDatabaseBeamImport name = case wordsBy (== '.') (GHC.moduleNameString name) of
