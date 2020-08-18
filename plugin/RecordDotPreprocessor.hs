@@ -13,9 +13,7 @@ import qualified GHC
 import qualified GhcPlugins as GHC
 import SrcLoc
 import TcEvidence
-import Data.Maybe (fromMaybe)
-
-import Debug.Trace
+import Data.Maybe (fromMaybe, isNothing)
 
 
 ---------------------------------------------------------------------
@@ -37,6 +35,9 @@ setL l (L _ x) = L l x
 
 mod_records :: GHC.ModuleName
 mod_records = GHC.mkModuleName "GHC.Records.Extra"
+
+mod_beam :: GHC.ModuleName
+mod_beam = GHC.mkModuleName "Database.Beam"
 
 mod_functorIdentity :: GHC.ModuleName
 mod_functorIdentity = GHC.mkModuleName "Data.Functor.Identity"
@@ -75,7 +76,7 @@ instanceTemplate ctx selector record field = ClsInstD noE $ ClsInstDecl noE (HsI
     where
         checkRecordTy :: Maybe (IdP GhcPs, HsType GhcPs)
         checkRecordTy = case record of
-          HsAppTy x l@(L _ (TypeVar idPDataCon)) (L _ (TypeVar idPVar)) -> let
+          HsAppTy x l (L _ (TypeVar idPVar)) -> let
             newTy = HsAppTy x l (noL $ HsTyVar noE GHC.NotPromoted (noL var_IdentityTy))
             in Just (idPVar, newTy)
           _ -> Nothing
@@ -83,19 +84,31 @@ instanceTemplate ctx selector record field = ClsInstD noE $ ClsInstDecl noE (HsI
         checkFieldTy :: IdP GhcPs -> Maybe (HsType GhcPs)
         checkFieldTy fIdP = case field of
           HsAppTy _ (L _ (HsAppTy _ (L _ (TypeVar famC)) (L _ (TypeVar f)))) (L _ fType) | fIdP == f -> let
-            maybeOrig = GHC.isOrig_maybe famC
-            maybeQual = GHC.isQual_maybe famC
-            isHkdTypeFamily = case (maybeOrig, maybeQual) of
-              (Just (GHC.Module _ modName, occName), _) -> isDatabaseBeamImport modName
-              (_, Just (modName, occName)) -> case lookUpQualImport ctx modName of
+            isHkdTypeFamily = case famC of
+              GHC.Orig (GHC.Module _ modName) _ -> isDatabaseBeamImport modName
+              GHC.Qual modName _                -> case lookUpQualImport ctx modName of
                 Just modFullName -> isDatabaseBeamImport modFullName
                 _ -> False
+              GHC.Unqual n -> GHC.occNameString n == "C" && hasUnqualImport ctx mod_beam
               _ -> False
             in if isHkdTypeFamily then Just fType else Nothing
           _ -> Nothing
 
         isDatabaseBeamImport :: GHC.ModuleName -> Bool
-        isDatabaseBeamImport name = "Database.Beam" `isInfixOf` GHC.moduleNameString name
+        isDatabaseBeamImport name = case wordsBy (== '.') (GHC.moduleNameString name) of
+          "Database":"Beam":_ -> True
+          _ -> False
+
+        hasUnqualImport :: HsModule GhcPs -> GHC.ModuleName -> Bool
+        hasUnqualImport mod qualName = let
+          importDeclsL = hsmodImports mod
+          importDecls = unLoc <$> importDeclsL
+          foo :: GHC.ImportDecl GhcPs -> Bool
+          foo d = let
+            name = unLoc (ideclName d)
+            noAsClause = isNothing (ideclAs d)
+            in noAsClause && name == qualName
+          in any foo importDecls
 
         lookUpQualImport :: HsModule GhcPs -> GHC.ModuleName -> Maybe GHC.ModuleName
         lookUpQualImport mod qualName =

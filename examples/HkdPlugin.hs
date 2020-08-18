@@ -10,10 +10,6 @@ import qualified Database.Beam as Beam
 -- ---------------------------------------------------------------------
 -- Deal with HKD
 
---type family C (f :: * -> *) (a :: *) where
---  C Identity a = a
---  C f a = f a
-
 data Foo f = Foo {
   bar :: C f Int,
   baz :: String
