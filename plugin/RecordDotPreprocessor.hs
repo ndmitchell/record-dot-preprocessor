@@ -14,6 +14,12 @@ import qualified GhcPlugins as GHC
 import SrcLoc
 import TcEvidence
 import Data.Maybe (fromMaybe)
+import GhcPlugins (ppr)
+import GhcPlugins (showSDocUnsafe)
+import GhcPlugins (rdrNameSpace)
+import GhcPlugins (pprNameSpace)
+import GhcPlugins (isOrig)
+import GhcPlugins (isUnqual)
 
 
 ---------------------------------------------------------------------
@@ -71,22 +77,28 @@ instance HasField "selector" Record Field where
 instanceTemplate :: FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
 instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
     where
-        checkRecortTy :: Maybe (IdP GhcPs, HsType GhcPs)
-        checkRecortTy = case record of
-          HsAppTy x l@(L _ (TypeVar idPDataCon)) (L _ (TypeVar idPVar)) -> let 
+        checkRecordTy :: Maybe (IdP GhcPs, HsType GhcPs)
+        checkRecordTy = case record of
+          HsAppTy x l@(L _ (TypeVar idPDataCon)) (L _ (TypeVar idPVar)) -> let
             newTy = HsAppTy x l (noL $ HsTyVar noE GHC.NotPromoted (noL var_IdentityTy))
             in Just (idPVar, newTy)
           _ -> Nothing
 
         checkFieldTy :: IdP GhcPs -> Maybe (HsType GhcPs)
         checkFieldTy fIdP = case field of
-          HsAppTy _ (L _ (HsAppTy _ (L _ (TypeVar famC)) (L _ (TypeVar f)))) (L _ t@(TypeVar a)) | fIdP == f -> Just t
+          HsAppTy _ (L _ (HsAppTy _ (L _ (TypeVar famC)) (L _ (TypeVar f)))) (L _ t@(TypeVar a)) | fIdP == f -> let
+            isUnq = GHC.isUnqual famC
+            maybeOrig = GHC.isOrig_maybe famC
+            isHkdTypeFam = case (isUnq, maybeOrig) of
+              (True, _) -> True -- For local development
+              (_, Just (GHC.Module _ modName, occName)) -> "Database.Beam" `isInfixOf` GHC.moduleNameString modName
+            in if isHkdTypeFam then Just t else Nothing
           _ -> Nothing
 
-        (newRecortTy, newFieldTy) = fromMaybe (record, field) $ do 
-          (tyVar, recTy) <- checkRecortTy
+        (newRecortTy, newFieldTy) = fromMaybe (record, field) $ do
+          (tyVar, recTy) <- checkRecordTy
           fieldTy <- checkFieldTy tyVar
-          pure (recTy, fieldTy) 
+          pure (recTy, fieldTy)
 
         typ = mkHsAppTys
             (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))

@@ -4,13 +4,14 @@
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds, KindSignatures, TypeFamilies #-} -- also tests we put language extensions before imports
 
 import Data.Functor.Identity
+import Database.Beam
 
 -- ---------------------------------------------------------------------
 -- Deal with HKD
 
-type family C (f :: * -> *) (a :: *) where
-  C Identity a = a
-  C f a = f a
+--type family C (f :: * -> *) (a :: *) where
+--  C Identity a = a
+--  C f a = f a
 
 data Foo f = Foo {
   bar :: C f Int,
