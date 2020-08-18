@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, PatternSynonyms #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -13,6 +13,7 @@ import qualified GHC
 import qualified GhcPlugins as GHC
 import SrcLoc
 import TcEvidence
+import Data.Maybe (fromMaybe)
 
 
 ---------------------------------------------------------------------
@@ -35,6 +36,12 @@ setL l (L _ x) = L l x
 mod_records :: GHC.ModuleName
 mod_records = GHC.mkModuleName "GHC.Records.Extra"
 
+mod_functorIdentity :: GHC.ModuleName
+mod_functorIdentity = GHC.mkModuleName "Data.Functor.Identity"
+
+var_IdentityTy :: GHC.RdrName
+var_IdentityTy = GHC.mkRdrQual mod_functorIdentity $ GHC.mkTcOcc "Identity"
+
 var_HasField, var_hasField, var_getField, var_setField, var_dot :: GHC.RdrName
 var_HasField = GHC.mkRdrQual mod_records $ GHC.mkClsOcc "HasField"
 var_hasField = GHC.mkRdrUnqual $ GHC.mkVarOcc "hasField"
@@ -50,8 +57,10 @@ onModule x = x { hsmodImports = onImports $ hsmodImports x
 
 
 onImports :: [LImportDecl GhcPs] -> [LImportDecl GhcPs]
-onImports = (:) $ qualifiedImplicitImport mod_records
+onImports is = qualifiedImplicitImport mod_records : qualifiedImplicitImport mod_functorIdentity : is
 
+
+pattern TypeVar idP <- HsTyVar _ _ (L _ idP)
 
 {-
 instance Z.HasField "name" (Company) (String) where hasField _r = (\_x -> _r{name=_x}, (name:: (Company) -> String) _r)
@@ -62,11 +71,28 @@ instance HasField "selector" Record Field where
 instanceTemplate :: FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
 instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
     where
+        checkRecortTy :: Maybe (IdP GhcPs, HsType GhcPs)
+        checkRecortTy = case record of
+          HsAppTy x l@(L _ (TypeVar idPDataCon)) (L _ (TypeVar idPVar)) -> let 
+            newTy = HsAppTy x l (noL $ HsTyVar noE GHC.NotPromoted (noL var_IdentityTy))
+            in Just (idPVar, newTy)
+          _ -> Nothing
+
+        checkFieldTy :: IdP GhcPs -> Maybe (HsType GhcPs)
+        checkFieldTy fIdP = case field of
+          HsAppTy _ (L _ (HsAppTy _ (L _ (TypeVar famC)) (L _ (TypeVar f)))) (L _ t@(TypeVar a)) | fIdP == f -> Just t
+          _ -> Nothing
+
+        (newRecortTy, newFieldTy) = fromMaybe (record, field) $ do 
+          (tyVar, recTy) <- checkRecortTy
+          fieldTy <- checkFieldTy tyVar
+          pure (recTy, fieldTy) 
+
         typ = mkHsAppTys
             (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))
             [noL (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
-            ,noL record
-            ,noL field
+            ,noL newRecortTy
+            ,noL newFieldTy
             ]
 
         has :: LHsBindLR GhcPs GhcPs

@@ -76,7 +76,7 @@ editAddPreamble o@xs
         (blanks, rest) = span (isPL "") o
 
         prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, OverloadedLabels #-}"
-        imports = "import qualified GHC.Records.Extra as Z; import Data.Functor.Identity as ZZ"
+        imports = "import qualified GHC.Records.Extra as Z"
         -- if you import two things that have preprocessor_unused, and export them as modules, you don't want them to clash
         trailing modName = "_preprocessor_unused_" ++ uniq ++ " :: Z.HasField \"\" r a => r -> a;" ++
                            "_preprocessor_unused_" ++ uniq ++ " = Z.getField @\"\""
@@ -188,7 +188,7 @@ editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
             ("C":x:ts) | x == hkdTyVar -> Just (unwords ts)
             _                       -> Nothing
     , let (rtyp, ftyp) = case (isHkd >>= (isBeamCoreC ftypRaw)) of
-            Just ty -> ("(" ++ unwords (rname : ["ZZ.Identity"]) ++ ")", ty)
+            Just ty -> ("(" ++ unwords (rname : ["Data.Functor.Identity.Identity"]) ++ ")", ty)
             _       -> ("(" ++ unwords (rname : rargs) ++ ")", ftypRaw)
     , let msg cname = "field " ++ show fname ++ " of type " ++ show rname ++ " with constructor " ++ show cname
     ]
