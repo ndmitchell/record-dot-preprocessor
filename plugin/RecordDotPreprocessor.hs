@@ -14,12 +14,8 @@ import qualified GhcPlugins as GHC
 import SrcLoc
 import TcEvidence
 import Data.Maybe (fromMaybe)
-import GhcPlugins (ppr)
-import GhcPlugins (showSDocUnsafe)
-import GhcPlugins (rdrNameSpace)
-import GhcPlugins (pprNameSpace)
-import GhcPlugins (isOrig)
-import GhcPlugins (isUnqual)
+
+import Debug.Trace
 
 
 ---------------------------------------------------------------------
@@ -58,7 +54,7 @@ var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
 onModule :: HsModule GhcPs -> HsModule GhcPs
 onModule x = x { hsmodImports = onImports $ hsmodImports x
-               , hsmodDecls = concatMap onDecl $ hsmodDecls x
+               , hsmodDecls = concatMap (onDecl x) $ hsmodDecls x
                }
 
 
@@ -74,8 +70,8 @@ instance Z.HasField "name" (Company) (String) where hasField _r = (\_x -> _r{nam
 instance HasField "selector" Record Field where
     hasField r = (\x -> r{selector=x}, (name :: Record -> Field) r)
 -}
-instanceTemplate :: FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
-instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
+instanceTemplate :: HsModule GhcPs -> FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
+instanceTemplate ctx selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
     where
         checkRecordTy :: Maybe (IdP GhcPs, HsType GhcPs)
         checkRecordTy = case record of
@@ -86,14 +82,30 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
 
         checkFieldTy :: IdP GhcPs -> Maybe (HsType GhcPs)
         checkFieldTy fIdP = case field of
-          HsAppTy _ (L _ (HsAppTy _ (L _ (TypeVar famC)) (L _ (TypeVar f)))) (L _ t@(TypeVar a)) | fIdP == f -> let
-            isUnq = GHC.isUnqual famC
+          HsAppTy _ (L _ (HsAppTy _ (L _ (TypeVar famC)) (L _ (TypeVar f)))) (L _ fType) | fIdP == f -> let
             maybeOrig = GHC.isOrig_maybe famC
-            isHkdTypeFam = case (isUnq, maybeOrig) of
-              (True, _) -> True -- For local development
-              (_, Just (GHC.Module _ modName, occName)) -> "Database.Beam" `isInfixOf` GHC.moduleNameString modName
-            in if isHkdTypeFam then Just t else Nothing
+            maybeQual = GHC.isQual_maybe famC
+            isHkdTypeFamily = case (maybeOrig, maybeQual) of
+              (Just (GHC.Module _ modName, occName), _) -> isDatabaseBeamImport modName
+              (_, Just (modName, occName)) -> case lookUpQualImport ctx modName of
+                Just modFullName -> isDatabaseBeamImport modFullName
+                _ -> False
+              _ -> False
+            in if isHkdTypeFamily then Just fType else Nothing
           _ -> Nothing
+
+        isDatabaseBeamImport :: GHC.ModuleName -> Bool
+        isDatabaseBeamImport name = "Database.Beam" `isInfixOf` GHC.moduleNameString name
+
+        lookUpQualImport :: HsModule GhcPs -> GHC.ModuleName -> Maybe GHC.ModuleName
+        lookUpQualImport mod qualName =
+          let imports = do
+                importDeclL <- hsmodImports mod
+                let importDecl = unLoc importDeclL
+                case ideclAs importDecl of
+                  Nothing -> []
+                  Just (L _ qualName) -> pure (qualName, unLoc $ ideclName importDecl)
+          in snd <$> find (\(name, _) -> name == qualName) imports
 
         (newRecortTy, newFieldTy) = fromMaybe (record, field) $ do
           (tyVar, recTy) <- checkRecordTy
@@ -135,12 +147,12 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
         vX = GHC.mkRdrUnqual $ GHC.mkVarOcc "x"
 
 
-onDecl :: LHsDecl GhcPs -> [LHsDecl GhcPs]
-onDecl o@(L _ (GHC.TyClD _ x)) = o :
-    [ noL $ InstD noE $ instanceTemplate field (unLoc record) (unbang typ)
+onDecl :: HsModule GhcPs -> LHsDecl GhcPs -> [LHsDecl GhcPs]
+onDecl ctx o@(L _ (GHC.TyClD _ x)) = o :
+    [ noL $ InstD noE $ instanceTemplate ctx field (unLoc record) (unbang typ)
     | let fields = nubOrdOn (\(_,_,x,_) -> GHC.occNameFS $ GHC.rdrNameOcc $ unLoc $ rdrNameFieldOcc x) $ getFields x
     , (record, _, field, typ) <- fields]
-onDecl x = [descendBi onExp x]
+onDecl ctx x = [descendBi onExp x]
 
 unbang :: HsType GhcPs -> HsType GhcPs
 unbang (HsBangTy _ _ x) = unLoc x

@@ -30,7 +30,7 @@ main = do
         putStrLn "# PluginHkdExample.hs"
         PluginHkdExample.main
     forM_ (reverse files) $ \file ->
-        when (takeExtension file == ".hs" && not ("_out.hs" `isSuffixOf` file)) $
+        when (takeExtension file == ".hs" && not ("_out.hs" `isSuffixOf` file) && not("HkdPlugin.hs" `isSuffixOf` file)) $
             if installed then do
                 src <- readFile' file
                 forM_ [("Preprocessor", "{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}")
