@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, PatternSynonyms #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, PatternSynonyms, OverloadedStrings #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -11,10 +11,12 @@ import Compat
 import Bag
 import qualified GHC
 import qualified GhcPlugins as GHC
+import qualified PrelNames as GHC
+import qualified Unique as GHC
 import SrcLoc
 import TcEvidence
 import Data.Maybe (fromMaybe, isNothing)
-
+import Debug.Trace
 
 ---------------------------------------------------------------------
 -- PLUGIN WRAPPER
@@ -39,6 +41,9 @@ mod_records = GHC.mkModuleName "GHC.Records.Extra"
 mod_maybe :: GHC.ModuleName
 mod_maybe = GHC.mkModuleName "GHC.Maybe"
 
+mod_types :: GHC.ModuleName
+mod_types = GHC.mkModuleName "GHC.Types"
+
 mod_beam :: GHC.ModuleName
 mod_beam = GHC.mkModuleName "Database.Beam"
 
@@ -48,8 +53,9 @@ mod_functorIdentity = GHC.mkModuleName "Data.Functor.Identity"
 var_IdentityTy :: GHC.RdrName
 var_IdentityTy = GHC.mkRdrQual mod_functorIdentity $ GHC.mkTcOcc "Identity"
 
-var_HasField, var_hasField, var_getField, var_setField, var_dot :: GHC.RdrName
+var_HasField, var_tilde, var_hasField, var_getField, var_setField, var_dot :: GHC.RdrName
 var_HasField = GHC.mkRdrQual mod_records $ GHC.mkClsOcc "HasField"
+var_tilde = GHC.mkRdrUnqual $ GHC.mkClsOcc "~"
 var_Maybe = GHC.mkRdrQual mod_maybe $ GHC.mkTcOcc "Maybe"
 var_hasField = GHC.mkRdrUnqual $ GHC.mkVarOcc "hasField"
 var_getField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "getField"
@@ -80,74 +86,18 @@ instance HasField "selector" Record Field where
     hasField r = (\x -> r{selector=x}, (name :: Record -> Field) r)
 -}
 instanceTemplate :: HsModule GhcPs -> FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
-instanceTemplate ctx selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
+instanceTemplate ctx selector record field = instance'
     where
-        checkRecordTy :: Maybe (IdP GhcPs, HsType GhcPs)
-        checkRecordTy = case record of
-          HsAppTy x l (LTypeVar idPVar) -> let
-            newTy = HsAppTy x l (noL $ HsTyVar noE GHC.NotPromoted (noL var_IdentityTy))
-            in Just (idPVar, newTy)
-          _ -> Nothing
+        instance' = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
 
-        checkFieldTy :: IdP GhcPs -> Maybe (HsType GhcPs)
-        checkFieldTy fIdP = case field of
-          HsAppTy _ (LTypeApp (LTypeVar famC) (LTypeVar f)) (L _ fType)
-            | fIdP == f -> if isBeamType "C" famC then Just fType else Nothing
+        typ' a = mkHsAppTys
+          (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))
+          [noL (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
+          ,noL record
+          ,noL a
+          ]
 
-          HsAppTy _ (LTypeApp (LTypeVar famC) (L _ (HsParTy _ (LTypeApp (LTypeVar modif) (LTypeVar f))))) (L _ fType) ->  let
-            isFFromDataDecl = fIdP == f
-            isModifierNullable = isBeamType "Nullable" modif
-            isBeamC = isBeamType "C" famC
-            maybeTy = HsAppTy noE (noL $ HsTyVar noE GHC.NotPromoted (noL var_Maybe)) (noL fType)
-            in if isFFromDataDecl && isModifierNullable && isBeamC then Just maybeTy else Nothing
-
-          _ -> Nothing
-
-        isBeamType name ty = case ty of
-          GHC.Orig (GHC.Module _ modName) _ -> isDatabaseBeamImport modName
-          GHC.Qual modName _                -> case lookUpQualImport ctx modName of
-            Just modFullName -> isDatabaseBeamImport modFullName
-            _ -> False
-          GHC.Unqual n -> GHC.occNameString n == name && hasUnqualImport ctx mod_beam
-          _ -> False
-
-        isDatabaseBeamImport :: GHC.ModuleName -> Bool
-        isDatabaseBeamImport name = case wordsBy (== '.') (GHC.moduleNameString name) of
-          "Database":"Beam":_ -> True
-          _ -> False
-
-        hasUnqualImport :: HsModule GhcPs -> GHC.ModuleName -> Bool
-        hasUnqualImport mod qualName = let
-          importDeclsL = hsmodImports mod
-          importDecls = unLoc <$> importDeclsL
-          foo :: GHC.ImportDecl GhcPs -> Bool
-          foo d = let
-            name = unLoc (ideclName d)
-            noAsClause = isNothing (ideclAs d)
-            in noAsClause && name == qualName
-          in any foo importDecls
-
-        lookUpQualImport :: HsModule GhcPs -> GHC.ModuleName -> Maybe GHC.ModuleName
-        lookUpQualImport mod qualName =
-          let imports = do
-                importDeclL <- hsmodImports mod
-                let importDecl = unLoc importDeclL
-                case ideclAs importDecl of
-                  Nothing -> []
-                  Just (L _ qualName) -> pure (qualName, unLoc $ ideclName importDecl)
-          in snd <$> find (\(name, _) -> name == qualName) imports
-
-        (newRecortTy, newFieldTy) = fromMaybe (record, field) $ do
-          (tyVar, recTy) <- checkRecordTy
-          fieldTy <- checkFieldTy tyVar
-          pure (recTy, fieldTy)
-
-        typ = mkHsAppTys
-            (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))
-            [noL (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
-            ,noL newRecortTy
-            ,noL newFieldTy
-            ]
+        typ = noL $ makeEqQualTy field (unLoc . typ')
 
         has :: LHsBindLR GhcPs GhcPs
         has = noL $ FunBind noE (noL var_hasField) (mg1 eqn) WpHole []
@@ -308,3 +258,23 @@ adjacentBy i (L (srcSpanEnd -> RealSrcLoc a) _) (L (srcSpanStart -> RealSrcLoc b
     srcLocLine a == srcLocLine b &&
     srcLocCol a + i == srcLocCol b
 adjacentBy _ _ _ = False
+
+
+makeEqQualTy :: HsType GhcPs -> (HsType GhcPs -> HsType GhcPs) -> HsType GhcPs
+makeEqQualTy rArg fAbs = let
+  var = GHC.nameRdrName $ GHC.mkUnboundName $ GHC.mkTyVarOcc "aplg"
+
+  tyVar :: HsType GhcPs
+  tyVar = HsTyVar noE GHC.NotPromoted (noL var)
+
+  var_tilde = GHC.mkOrig GHC.gHC_TYPES $ GHC.mkClsOcc "~"
+
+  eqQual :: HsType GhcPs
+  eqQual = HsOpTy noE (noL rArg) (noLoc var_tilde) (noLoc tyVar)
+
+  qualCtx :: HsContext GhcPs
+  qualCtx = [noLoc (HsParTy noE (noLoc eqQual))]
+
+  qualType :: HsType GhcPs
+  qualType = HsQualTy noE (noL qualCtx) (noL (fAbs tyVar))
+  in qualType
