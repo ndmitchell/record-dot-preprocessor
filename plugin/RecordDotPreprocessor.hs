@@ -12,11 +12,8 @@ import Bag
 import qualified GHC
 import qualified GhcPlugins as GHC
 import qualified PrelNames as GHC
-import qualified Unique as GHC
 import SrcLoc
 import TcEvidence
-import Data.Maybe (fromMaybe, isNothing)
-import Debug.Trace
 
 ---------------------------------------------------------------------
 -- PLUGIN WRAPPER
@@ -38,25 +35,8 @@ setL l (L _ x) = L l x
 mod_records :: GHC.ModuleName
 mod_records = GHC.mkModuleName "GHC.Records.Extra"
 
-mod_maybe :: GHC.ModuleName
-mod_maybe = GHC.mkModuleName "GHC.Maybe"
-
-mod_types :: GHC.ModuleName
-mod_types = GHC.mkModuleName "GHC.Types"
-
-mod_beam :: GHC.ModuleName
-mod_beam = GHC.mkModuleName "Database.Beam"
-
-mod_functorIdentity :: GHC.ModuleName
-mod_functorIdentity = GHC.mkModuleName "Data.Functor.Identity"
-
-var_IdentityTy :: GHC.RdrName
-var_IdentityTy = GHC.mkRdrQual mod_functorIdentity $ GHC.mkTcOcc "Identity"
-
-var_HasField, var_tilde, var_hasField, var_getField, var_setField, var_dot :: GHC.RdrName
+var_HasField, var_hasField, var_getField, var_setField, var_dot :: GHC.RdrName
 var_HasField = GHC.mkRdrQual mod_records $ GHC.mkClsOcc "HasField"
-var_tilde = GHC.mkRdrUnqual $ GHC.mkClsOcc "~"
-var_Maybe = GHC.mkRdrQual mod_maybe $ GHC.mkTcOcc "Maybe"
 var_hasField = GHC.mkRdrUnqual $ GHC.mkVarOcc "hasField"
 var_getField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "getField"
 var_setField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "setField"
