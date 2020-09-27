@@ -65,19 +65,12 @@ var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
 onModule :: HsModule GhcPs -> HsModule GhcPs
 onModule x = x { hsmodImports = onImports $ hsmodImports x
-               , hsmodDecls = concatMap (onDecl x) $ hsmodDecls x
+               , hsmodDecls = concatMap onDecl $ hsmodDecls x
                }
 
 
 onImports :: [LImportDecl GhcPs] -> [LImportDecl GhcPs]
-onImports is = qualifiedImplicitImport mod_records
-             : qualifiedImplicitImport mod_functorIdentity
-             : qualifiedImplicitImport mod_maybe
-             : is
-
-
-pattern LTypeVar idP <- L _ (HsTyVar _ _ (L _ idP))
-pattern LTypeApp lt rt <- (L _ (HsAppTy _ lt rt))
+onImports = (:) $ qualifiedImplicitImport mod_records
 
 {-
 instance Z.HasField "name" (Company) (String) where hasField _r = (\_x -> _r{name=_x}, (name:: (Company) -> String) _r)
@@ -85,8 +78,8 @@ instance Z.HasField "name" (Company) (String) where hasField _r = (\_x -> _r{nam
 instance HasField "selector" Record Field where
     hasField r = (\x -> r{selector=x}, (name :: Record -> Field) r)
 -}
-instanceTemplate :: HsModule GhcPs -> FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
-instanceTemplate ctx selector record field = instance'
+instanceTemplate :: FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
+instanceTemplate selector record field = instance'
     where
         instance' = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
 
@@ -127,12 +120,12 @@ instanceTemplate ctx selector record field = instance'
         vX = GHC.mkRdrUnqual $ GHC.mkVarOcc "x"
 
 
-onDecl :: HsModule GhcPs -> LHsDecl GhcPs -> [LHsDecl GhcPs]
-onDecl ctx o@(L _ (GHC.TyClD _ x)) = o :
-    [ noL $ InstD noE $ instanceTemplate ctx field (unLoc record) (unbang typ)
+onDecl :: LHsDecl GhcPs -> [LHsDecl GhcPs]
+onDecl o@(L _ (GHC.TyClD _ x)) = o :
+    [ noL $ InstD noE $ instanceTemplate field (unLoc record) (unbang typ)
     | let fields = nubOrdOn (\(_,_,x,_) -> GHC.occNameFS $ GHC.rdrNameOcc $ unLoc $ rdrNameFieldOcc x) $ getFields x
     , (record, _, field, typ) <- fields]
-onDecl ctx x = [descendBi onExp x]
+onDecl x = [descendBi onExp x]
 
 unbang :: HsType GhcPs -> HsType GhcPs
 unbang (HsBangTy _ _ x) = unLoc x
