@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wincomplete-record-updates -Wno-unused-top-binds #-} -- can we produce -Wall clean code
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds, KindSignatures, TypeFamilies #-} -- also tests we put language extensions before imports
 
-import Data.Functor.Identity
+import Data.Functor.Identity (Identity(..))
 import Control.Monad (unless)
 import Database.Beam
 import qualified Database.Beam as Beam

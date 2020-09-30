@@ -59,12 +59,11 @@ executable record-dot-preprocessor
         Paren
 
 test-suite record-dot-preprocessor-test
-    default-language: Haskell2010
-    type: exitcode-stdio-1.0
-    main-is: Test.hs
-    hs-source-dirs: preprocessor, test
-    ghc-options: -main-is Test.main
-
+    default-language:   Haskell2010
+    type:               exitcode-stdio-1.0
+    hs-source-dirs:     preprocessor, test
+    main-is:            Test.hs
+    ghc-options:        -main-is Test.main
     build-depends:
         base == 4.*,
         extra,
