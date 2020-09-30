@@ -160,7 +160,7 @@ renderUpdate (Update e upd) = case unsnoc upd of
 
 editAddInstances :: [PL] -> [PL]
 editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
-    [ "instance (aplg ~ " ++ ftyp ++ ") => Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " aplg " ++
+    [ "instance (aplg ~ (" ++ ftyp ++ ")) => Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " aplg " ++
       "where hasField _r = (\\_x -> case _r of {" ++ intercalate " ; "
         [ if fname `elem` map fst fields then
             "(" ++ cname ++ " " ++
