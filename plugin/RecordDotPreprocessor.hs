@@ -64,11 +64,11 @@ instanceTemplate selector record field = instance'
         instance' = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
 
         typ' a = mkHsAppTys
-          (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))
-          [noL (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
-          ,noL record
-          ,noL a
-          ]
+            (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))
+            [noL (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
+            ,noL record
+            ,noL a
+            ]
 
         typ = noL $ makeEqQualTy field (unLoc . typ')
 
@@ -233,21 +233,22 @@ adjacentBy i (L (srcSpanEnd -> RealSrcLoc a) _) (L (srcSpanStart -> RealSrcLoc b
 adjacentBy _ _ _ = False
 
 
+--  Given:
+--   C f Int    and     \x -> HasField "field" Entity x
+--   Returns:
+--   ((C f Int) ~ aplg) => HasField "field" Entity aplg
 makeEqQualTy :: HsType GhcPs -> (HsType GhcPs -> HsType GhcPs) -> HsType GhcPs
-makeEqQualTy rArg fAbs = let
-  var = GHC.nameRdrName $ GHC.mkUnboundName $ GHC.mkTyVarOcc "aplg"
+makeEqQualTy rArg fAbs = HsQualTy noE (noL qualCtx) (noL (fAbs tyVar))
+    where
+        var = GHC.nameRdrName $ GHC.mkUnboundName $ GHC.mkTyVarOcc "aplg"
 
-  tyVar :: HsType GhcPs
-  tyVar = HsTyVar noE GHC.NotPromoted (noL var)
+        tyVar :: HsType GhcPs
+        tyVar = HsTyVar noE GHC.NotPromoted (noL var)
 
-  var_tilde = GHC.mkOrig GHC.gHC_TYPES $ GHC.mkClsOcc "~"
+        var_tilde = GHC.mkOrig GHC.gHC_TYPES $ GHC.mkClsOcc "~"
 
-  eqQual :: HsType GhcPs
-  eqQual = HsOpTy noE (noL rArg) (noLoc var_tilde) (noLoc tyVar)
+        eqQual :: HsType GhcPs
+        eqQual = HsOpTy noE (noL (HsParTy noE (noL rArg))) (noLoc var_tilde) (noLoc tyVar)
 
-  qualCtx :: HsContext GhcPs
-  qualCtx = [noLoc (HsParTy noE (noLoc eqQual))]
-
-  qualType :: HsType GhcPs
-  qualType = HsQualTy noE (noL qualCtx) (noL (fAbs tyVar))
-  in qualType
+        qualCtx :: HsContext GhcPs
+        qualCtx = [noL (HsParTy noE (noL eqQual))]

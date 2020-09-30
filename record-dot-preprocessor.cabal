@@ -75,7 +75,6 @@ test-suite record-dot-preprocessor-test
             record-dot-preprocessor
     other-modules:
         PluginExample
-        PluginHkdExample
         Preprocessor
         Edit
         Lexer

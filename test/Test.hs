@@ -2,7 +2,6 @@ module Test(main) where
 
 import qualified Preprocessor
 import qualified PluginExample -- To test the plugin
-import qualified PluginHkdExample -- To test the plugin on hkd
 import GHC.Records.Extra() -- To ensure the runtime dependency is present
 
 import System.Directory.Extra
@@ -25,9 +24,6 @@ main = do
     unless installed $ do
         putStrLn "# PluginExample.hs"
         PluginExample.main
-    unless installed $ do
-        putStrLn "# PluginHkdExample.hs"
-        PluginHkdExample.main
     forM_ (reverse files) $ \file ->
         when (takeExtension file == ".hs" && not ("_out.hs" `isSuffixOf` file)) $
             if installed then do
