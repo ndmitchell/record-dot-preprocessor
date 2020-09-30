@@ -18,7 +18,7 @@ main = pure ()
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
 {-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, TypeFamilies, TypeOperators, GADTs, UndecidableInstances #-}
 -- things that are now treated as comments
-{-# OPTIONS_GHC -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wincomplete-record-updates -Wno-unused-top-binds #-}
+{-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wno-incomplete-record-updates -Wno-unused-top-binds #-}
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, KindSignatures #-}
 module PluginExample where
 #include "../examples/Both.hs"
