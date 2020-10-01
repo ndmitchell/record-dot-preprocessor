@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    #29, deal with records containing type families in field types
 0.2.6, released 2020-08-12
     #30, don't warn about incomplete record updates
     #31, allow fields to have names that clash with functions
