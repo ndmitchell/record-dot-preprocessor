@@ -7,8 +7,8 @@ import Control.Exception
 import Data.Version
 import Data.Proxy
 import Data.Functor.Identity (Identity(..))
-import Database.Beam
-import qualified Database.Beam as Beam
+import qualified Data.Kind as T
+
 
 main :: IO ()
 main = test1 >> test2 >> test3 >> test4 >> test5 >> test6 >> test7 >> test8 >> test9 >> putStrLn "All worked"
@@ -209,14 +209,18 @@ test8 = do
 -- ---------------------------------------------------------------------
 -- Deal with HKD
 
+-- Emulate simple HKD functionality
+data Nullable (f :: T.Type -> T.Type) (a :: T.Type)
+
+type family C (f :: T.Type -> T.Type) (a :: T.Type) :: T.Type where
+    C Identity a = a
+    C (Nullable c) a = C c (Maybe a)
+    C f a = f a
+
+
 data Foo9 f = Foo9 {
   bar :: C f Int,
   baz :: String
-  }
-
-data Foo91 f = Foo91 {
-  bar1 :: Beam.C f Int,
-  baz1 :: String
   }
 
 data Foo92 f = Foo92 {
@@ -227,9 +231,6 @@ data Foo92 f = Foo92 {
 tstObj :: Foo9 Identity
 tstObj = Foo9 1 "test"
 
-tstObj1 :: Foo91 Identity
-tstObj1 = Foo91 1 "test"
-
 tstObj2 :: Foo92 Identity
 tstObj2 = Foo92 (Just 1) "test"
 
@@ -237,7 +238,5 @@ test9 :: IO ()
 test9 = do
   tstObj.baz === "test"
   tstObj.bar === 1
-  tstObj1.baz1 === "test"
-  tstObj1.bar1 === 1
   tstObj2.baz2 === "test"
   tstObj2.bar2 === Just 1
