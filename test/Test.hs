@@ -1,4 +1,3 @@
-
 module Test(main) where
 
 import qualified Preprocessor
@@ -23,7 +22,7 @@ main = do
     files <- listFiles "examples"
     let installed = "--installed" `elem` args
     unless installed $ do
-        putStrLn "# Plugin Example.hs"
+        putStrLn "# PluginExample.hs"
         PluginExample.main
     forM_ (reverse files) $ \file ->
         when (takeExtension file == ".hs" && not ("_out.hs" `isSuffixOf` file)) $

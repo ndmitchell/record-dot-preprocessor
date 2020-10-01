@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, PatternSynonyms, OverloadedStrings #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -11,9 +11,9 @@ import Compat
 import Bag
 import qualified GHC
 import qualified GhcPlugins as GHC
+import qualified PrelNames as GHC
 import SrcLoc
 import TcEvidence
-
 
 ---------------------------------------------------------------------
 -- PLUGIN WRAPPER
@@ -52,7 +52,6 @@ onModule x = x { hsmodImports = onImports $ hsmodImports x
 onImports :: [LImportDecl GhcPs] -> [LImportDecl GhcPs]
 onImports = (:) $ qualifiedImplicitImport mod_records
 
-
 {-
 instance Z.HasField "name" (Company) (String) where hasField _r = (\_x -> _r{name=_x}, (name:: (Company) -> String) _r)
 
@@ -62,12 +61,14 @@ instance HasField "selector" Record Field where
 instanceTemplate :: FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
 instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB noE typ) (unitBag has) [] [] [] Nothing
     where
-        typ = mkHsAppTys
+        typ' a = mkHsAppTys
             (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))
             [noL (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
             ,noL record
-            ,noL field
+            ,noL a
             ]
+
+        typ = noL $ makeEqQualTy field (unLoc . typ')
 
         has :: LHsBindLR GhcPs GhcPs
         has = noL $ FunBind noE (noL var_hasField) (mg1 eqn) WpHole []
@@ -228,3 +229,24 @@ adjacentBy i (L (srcSpanEnd -> RealSrcLoc a) _) (L (srcSpanStart -> RealSrcLoc b
     srcLocLine a == srcLocLine b &&
     srcLocCol a + i == srcLocCol b
 adjacentBy _ _ _ = False
+
+
+--  Given:
+--   C f Int    and     \x -> HasField "field" Entity x
+--   Returns:
+--   ((C f Int) ~ aplg) => HasField "field" Entity aplg
+makeEqQualTy :: HsType GhcPs -> (HsType GhcPs -> HsType GhcPs) -> HsType GhcPs
+makeEqQualTy rArg fAbs = HsQualTy noE (noL qualCtx) (noL (fAbs tyVar))
+    where
+        var = GHC.nameRdrName $ GHC.mkUnboundName $ GHC.mkTyVarOcc "aplg"
+
+        tyVar :: HsType GhcPs
+        tyVar = HsTyVar noE GHC.NotPromoted (noL var)
+
+        var_tilde = GHC.mkOrig GHC.gHC_TYPES $ GHC.mkClsOcc "~"
+
+        eqQual :: HsType GhcPs
+        eqQual = HsOpTy noE (noL (HsParTy noE (noL rArg))) (noLoc var_tilde) (noLoc tyVar)
+
+        qualCtx :: HsContext GhcPs
+        qualCtx = [noL (HsParTy noE (noL eqQual))]

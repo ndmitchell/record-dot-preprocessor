@@ -75,7 +75,7 @@ editAddPreamble o@xs
     where
         (blanks, rest) = span (isPL "") o
 
-        prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, OverloadedLabels #-}"
+        prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, OverloadedLabels, TypeFamilies, TypeOperators, GADTs, UndecidableInstances #-}"
         imports = "import qualified GHC.Records.Extra as Z"
         -- if you import two things that have preprocessor_unused, and export them as modules, you don't want them to clash
         trailing modName = "_preprocessor_unused_" ++ uniq ++ " :: Z.HasField \"\" r a => r -> a;" ++
@@ -160,7 +160,7 @@ renderUpdate (Update e upd) = case unsnoc upd of
 
 editAddInstances :: [PL] -> [PL]
 editAddInstances xs = xs ++ concatMap (\x -> [nl $ mkPL "", mkPL x])
-    [ "instance Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " (" ++ ftyp ++ ") " ++
+    [ "instance (aplg ~ (" ++ ftyp ++ ")) => Z.HasField \"" ++ fname ++ "\" " ++ rtyp ++ " aplg " ++
       "where hasField _r = (\\_x -> case _r of {" ++ intercalate " ; "
         [ if fname `elem` map fst fields then
             "(" ++ cname ++ " " ++

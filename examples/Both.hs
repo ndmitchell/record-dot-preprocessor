@@ -6,9 +6,12 @@
 import Control.Exception
 import Data.Version
 import Data.Proxy
+import Data.Functor.Identity (Identity(..))
+import qualified Data.Kind as T
+
 
 main :: IO ()
-main = test1 >> test2 >> test3 >> test4 >> test5 >> test6 >> test7 >> test8 >> putStrLn "All worked"
+main = test1 >> test2 >> test3 >> test4 >> test5 >> test6 >> test7 >> test8 >> test9 >> putStrLn "All worked"
 
 (===) :: (Show a, Eq a) => a -> a -> IO ()
 a === b = if a == b then pure () else fail $ "Mismatch, " ++ show a ++ " /= " ++ show b
@@ -202,3 +205,38 @@ test8 = do
     quux.quux8 === "test"
     fails $ foo.quux8
     fails $ length $ show $ quux{bar8=1}
+
+-- ---------------------------------------------------------------------
+-- Deal with HKD
+
+-- Emulate simple HKD functionality
+data Nullable (f :: T.Type -> T.Type) (a :: T.Type)
+
+type family C (f :: T.Type -> T.Type) (a :: T.Type) :: T.Type where
+    C Identity a = a
+    C (Nullable c) a = C c (Maybe a)
+    C f a = f a
+
+
+data Foo9 f = Foo9 {
+  bar :: C f Int,
+  baz :: String
+  }
+
+data Foo92 f = Foo92 {
+  bar2 :: C (Nullable f) Int,
+  baz2 :: String
+  }
+
+tstObj :: Foo9 Identity
+tstObj = Foo9 1 "test"
+
+tstObj2 :: Foo92 Identity
+tstObj2 = Foo92 (Just 1) "test"
+
+test9 :: IO ()
+test9 = do
+  tstObj.baz === "test"
+  tstObj.bar === 1
+  tstObj2.baz2 === "test"
+  tstObj2.bar2 === Just 1
