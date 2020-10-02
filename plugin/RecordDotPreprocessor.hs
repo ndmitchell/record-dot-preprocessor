@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, PatternSynonyms, OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
