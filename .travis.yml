@@ -11,5 +11,5 @@ jobs:
   - env: GHCVER=head
 
 script:
-- export HLINT_ARGUMENTS=preprocessor test plugin
+- export HLINT_ARGUMENTS="preprocessor test plugin"
 - curl -sSL https://raw.github.com/ndmitchell/neil/master/travis.sh | sh
