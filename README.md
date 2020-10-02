@@ -56,3 +56,5 @@ Records in Haskell are well known to be [pretty lousy](https://www.yesodweb.com/
 ## Any advice for using this magic?
 
 The most important consideration is that all records used by `a.b` or `a{b=c}` syntax _must_ have `HasField` instances, which requires either running the preprocessor/plugin over the module defining them, or writing orphan instances by hand. To use records which don't have such instances use normal selector functions (e.g. `b a`) and insert a space before the `{` (e.g. `a {b=c}`).
+
+The desugaring of this magic enables `UndecidableInstances` for its own instances, which may permit other instances you didn't realise were undecidable without a compiler error.
