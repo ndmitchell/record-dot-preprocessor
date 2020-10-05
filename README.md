@@ -20,7 +20,7 @@ Here we declare two records both with `name` as a field, then write `c.name` and
 First install `record-dot-preprocessor` with either `stack install record-dot-preprocessor` or `cabal update && cabal install record-dot-preprocessor`. Then at the top of the file add:
 
 * Either: `{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}` for the preprocessor.
-* Or: `{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}` and `{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances #-}` for the GHC plugin.
+* Or: `{-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}` and `{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, UndecidableInstances, GADTs #-}` for the GHC plugin.
 
 The GHC plugin only runs on GHC 8.6 or higher, [doesn't work on Windows](https://gitlab.haskell.org/ghc/ghc/issues/16405) and has much better error messages. In contrast, the preprocessor runs everywhere and has more features.
 
@@ -56,5 +56,3 @@ Records in Haskell are well known to be [pretty lousy](https://www.yesodweb.com/
 ## Any advice for using this magic?
 
 The most important consideration is that all records used by `a.b` or `a{b=c}` syntax _must_ have `HasField` instances, which requires either running the preprocessor/plugin over the module defining them, or writing orphan instances by hand. To use records which don't have such instances use normal selector functions (e.g. `b a`) and insert a space before the `{` (e.g. `a {b=c}`).
-
-The desugaring of this magic enables `UndecidableInstances` for its own instances, which may permit other instances you didn't realise were undecidable without a compiler error.
