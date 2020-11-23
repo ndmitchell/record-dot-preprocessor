@@ -13,7 +13,8 @@ jobs:
         os: [ubuntu-latest]
         ghc: ['8.10', '8.8', '8.6']
         include:
-        - os: windows-latest
+        # It sometimes works a bit Windows, but not very robustly,
+        # and not in CI - so exclude it
         - os: macOS-latest
 
     steps:
