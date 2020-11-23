@@ -19,7 +19,7 @@ bug-reports:        https://github.com/ndmitchell/record-dot-preprocessor/issues
 extra-doc-files:
     README.md
     CHANGES.txt
-tested-with:        GHC==8.10, GHC==8.8, GHC==8.6, GHC==8.4
+tested-with:        GHC==8.10, GHC==8.8, GHC==8.6
 extra-source-files:
     examples/Both.hs
     examples/Both2.hs
