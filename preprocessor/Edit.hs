@@ -54,6 +54,14 @@ setWhite w (Paren x y z) = Paren x y z{whitespace=w}
 isCtor (Item x) = any isUpper $ take 1 $ lexeme x
 isCtor _ = False
 
+-- | This test does not check that the @quoter@ name is a qualified identifier,
+-- instead relying on lack of whitespace in the opener and existence of a paired
+-- closed (@|]@)
+isQuasiQuotation :: PL -> Bool
+isQuasiQuotation (Paren (L "[") inner@(Item qq : Item (L "|") : _) (L "]"))
+    | Item close@(L "|") <- last inner = null (whitespace qq) && null (whitespace close)
+isQuasiQuotation _ = False
+
 isField (x:_) = x == '_' || isLower x
 isField _ = False
 
@@ -95,6 +103,9 @@ spanFields xs = ([], "", xs)
 
 
 editLoop :: [PL] -> [PL]
+
+--  Leave quasiquotations alone
+editLoop (p : ps) | isQuasiQuotation p = p : editLoop ps
 
 -- | a.b.c ==> getField @'(b,c) a
 editLoop (NoW e : (spanFields -> (fields@(_:_), whitespace, rest)))
