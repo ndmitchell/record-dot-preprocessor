@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings #-}
 {- HLINT ignore "Use camelCase" -}
 
@@ -8,12 +9,21 @@ import Data.Generics.Uniplate.Data
 import Data.List.Extra
 import Data.Tuple.Extra
 import Compat
-import Bag
 import qualified GHC
+#if __GLASGOW_HASKELL__ < 900
+import Bag
 import qualified GhcPlugins as GHC
 import qualified PrelNames as GHC
 import SrcLoc
-import TcEvidence
+#else
+import GHC.Data.Bag
+import qualified GHC.Driver.Plugins as GHC
+import qualified GHC.Driver.Types as GHC
+import qualified GHC.Builtin.Names as GHC
+import qualified GHC.Plugins as GHC
+import GHC.Types.SrcLoc
+#endif
+
 
 ---------------------------------------------------------------------
 -- PLUGIN WRAPPER
@@ -43,7 +53,7 @@ var_setField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "setField"
 var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
 
-onModule :: HsModule GhcPs -> HsModule GhcPs
+onModule :: Module -> Module
 onModule x = x { hsmodImports = onImports $ hsmodImports x
                , hsmodDecls = concatMap onDecl $ hsmodDecls x
                }
@@ -71,7 +81,7 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
         typ = noL $ makeEqQualTy field (unLoc . typ')
 
         has :: LHsBindLR GhcPs GhcPs
-        has = noL $ FunBind noE (noL var_hasField) (mg1 eqn) WpHole []
+        has = noL $ mkFunBind GHC.Generated (noL var_hasField) [noL eqn]
             where
                 eqn = Match
                     { m_ext     = noE
@@ -88,7 +98,7 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
                 update = RecordUpd noE (noL $ GHC.HsVar noE $ noL vR)
                     [noL $ HsRecField (noL (Unambiguous noE (rdrNameFieldOcc selector))) (noL $ GHC.HsVar noE $ noL vX) False]
                 get = mkApp
-                    (mkParen $ mkTypeAnn (noL $ GHC.HsVar noE $ rdrNameFieldOcc selector) (noL $ HsFunTy noE (noL record) (noL field)))
+                    (mkParen $ mkTypeAnn (noL $ GHC.HsVar noE $ rdrNameFieldOcc selector) (mkFunTy (noL record) (noL field)))
                     (noL $ GHC.HsVar noE $ noL vR)
 
         mg1 :: Match GhcPs (LHsExpr GhcPs) -> MatchGroup GhcPs (LHsExpr GhcPs)
@@ -224,7 +234,7 @@ adjacent = adjacentBy 0
 
 -- | Are the end of a and the start of b next to each other, no white space
 adjacentBy :: Int -> Located a -> Located b -> Bool
-adjacentBy i (L (srcSpanEnd -> RealSrcLoc a) _) (L (srcSpanStart -> RealSrcLoc b) _) =
+adjacentBy i (L (realSrcLoc . srcSpanEnd -> Just a) _) (L (realSrcLoc . srcSpanStart -> Just b) _) =
     srcLocFile a == srcLocFile b &&
     srcLocLine a == srcLocLine b &&
     srcLocCol a + i == srcLocCol b

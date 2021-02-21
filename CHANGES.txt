@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    Support GHC 9.0
     #38, make the preprocessor avoid quasi quotes
 0.2.7, released 2020-10-02
     #29, deal with records containing type families in field types

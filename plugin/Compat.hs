@@ -5,7 +5,13 @@
 module Compat(module Compat) where
 
 import GHC
+#if __GLASGOW_HASKELL__ < 900
 import BasicTypes
+#else
+import GHC.Types.Basic
+import GHC.Unit.Types
+import GHC.Parser.Annotation
+#endif
 #if __GLASGOW_HASKELL__ < 810
 import HsSyn as Compat
 #else
@@ -26,11 +32,31 @@ noE :: NoExtField
 noE = noExtField
 #endif
 
+realSrcLoc :: SrcLoc -> Maybe RealSrcLoc
+#if __GLASGOW_HASKELL__ < 811
+realSrcLoc (RealSrcLoc x) = Just x
+#else
+realSrcLoc (RealSrcLoc x _) = Just x
+#endif
+realSrcLoc _ = Nothing
+
+#if __GLASGOW_HASKELL__ >= 900
+hsLTyVarBndrToType :: LHsTyVarBndr flag (GhcPass p) -> LHsType (GhcPass p)
+hsLTyVarBndrToType x = noL $ HsTyVar noE NotPromoted $ noL $ hsLTyVarName x
+#endif
+
 ---------------------------------------------------------------------
 -- COMMON SIGNATURES
 
+#if __GLASGOW_HASKELL__ < 811
+type Module = HsModule GhcPs
+#else
+type Module = HsModule
+#endif
+
 mkAppType :: LHsExpr GhcPs -> LHsType GhcPs -> LHsExpr GhcPs
 mkTypeAnn :: LHsExpr GhcPs -> LHsType GhcPs -> LHsExpr GhcPs
+mkFunTy :: LHsType GhcPs -> LHsType GhcPs -> LHsType GhcPs
 
 #if __GLASGOW_HASKELL__ < 807
 
@@ -43,6 +69,18 @@ mkTypeAnn expr typ = noL $ ExprWithTySig (HsWC noE (HsIB noE typ)) expr
 -- GHC 8.8+
 mkAppType expr typ = noL $ HsAppType noE expr (HsWC noE typ)
 mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsIB noE typ))
+
+#endif
+
+#if __GLASGOW_HASKELL__ < 811
+
+-- GHC 8.10 and below
+mkFunTy a b = noL $ HsFunTy noE a b
+
+#else
+
+-- GHC 9.0
+mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow NormalSyntax) a b
 
 #endif
 
@@ -76,9 +114,16 @@ qualifiedImplicitImport :: ModuleName -> LImportDecl GhcPs
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing False False
     True {- qualified -} True {- implicit -} Nothing Nothing
 
+#elif __GLASGOW_HASKELL__ < 811
+
+-- GHC 8.10
+qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing False False
+    QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
+
 #else
 
-qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing False False
+-- GHC 9.0
+qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
 #endif
