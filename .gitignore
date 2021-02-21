@@ -1,4 +1,5 @@
 /dist/
+/dist-newstyle/
 /.hpc/
 .stack-work/
 stack.yaml
