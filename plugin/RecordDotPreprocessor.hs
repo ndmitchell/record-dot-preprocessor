@@ -81,7 +81,7 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
         typ = noL $ makeEqQualTy field (unLoc . typ')
 
         has :: LHsBindLR GhcPs GhcPs
-        has = noL $ mkFunBind GHC.Generated (noL var_hasField) [noL eqn]
+        has = noL $ newFunBind (noL var_hasField) (mg1 eqn)
             where
                 eqn = Match
                     { m_ext     = noE

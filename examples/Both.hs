@@ -180,7 +180,7 @@ test6 = do
 -- ---------------------------------------------------------------------
 -- Deal with kind signatures
 
-data UserF (f :: * -> *) = UserF { userf_name :: String }
+data UserF (f :: T.Type -> T.Type) = UserF { userf_name :: String }
 
 test7 :: IO ()
 test7 = do

@@ -57,6 +57,7 @@ type Module = HsModule
 mkAppType :: LHsExpr GhcPs -> LHsType GhcPs -> LHsExpr GhcPs
 mkTypeAnn :: LHsExpr GhcPs -> LHsType GhcPs -> LHsExpr GhcPs
 mkFunTy :: LHsType GhcPs -> LHsType GhcPs -> LHsType GhcPs
+newFunBind :: Located RdrName -> MatchGroup GhcPs (LHsExpr GhcPs) -> HsBind GhcPs
 
 #if __GLASGOW_HASKELL__ < 807
 
@@ -76,11 +77,13 @@ mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsIB noE typ))
 
 -- GHC 8.10 and below
 mkFunTy a b = noL $ HsFunTy noE a b
+newFunBind a b = FunBind noE a b WpHole []
 
 #else
 
 -- GHC 9.0
 mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow NormalSyntax) a b
+newFunBind a b = FunBind noE a b []
 
 #endif
 
