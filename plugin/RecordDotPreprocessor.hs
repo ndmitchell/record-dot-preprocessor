@@ -15,7 +15,6 @@ import Bag
 import qualified GhcPlugins as GHC
 import qualified PrelNames as GHC
 import SrcLoc
-import TcEvidence
 #else
 import GHC.Data.Bag
 import qualified GHC.Driver.Plugins as GHC

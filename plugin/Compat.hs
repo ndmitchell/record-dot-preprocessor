@@ -7,6 +7,7 @@ module Compat(module Compat) where
 import GHC
 #if __GLASGOW_HASKELL__ < 900
 import BasicTypes
+import TcEvidence
 #else
 import GHC.Types.Basic
 import GHC.Unit.Types
