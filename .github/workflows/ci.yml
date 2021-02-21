@@ -13,9 +13,10 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         ghc: ['9.0', '8.10', '8.8', '8.6']
+        # It sometimes works a bit Windows, but not very robustly,
+        # and not in CI - so exclude it
         include:
         - os: macOS-latest
-        - os: windows-latest
 
     steps:
     - run: git config --global core.autocrlf false
