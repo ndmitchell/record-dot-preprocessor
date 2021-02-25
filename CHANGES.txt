@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    Don't add the OverloadedLabels extension
 0.2.8, released 2021-02-21
     Support GHC 9.0
     #38, make the preprocessor avoid quasi quotes
