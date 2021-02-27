@@ -83,11 +83,14 @@ editAddPreamble o@xs
     where
         (blanks, rest) = span (isPL "") o
 
-        prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, TypeFamilies, TypeOperators, GADTs, UndecidableInstances #-}"
+        prefix = "{-# LANGUAGE DuplicateRecordFields, DataKinds, FlexibleInstances, TypeApplications, FlexibleContexts, MultiParamTypeClasses, TypeFamilies, TypeOperators, GADTs, UndecidableInstances #-}\n" ++
+                 -- it's too hard to avoid generating excessive brackets, so just ignore the code
+                 -- only really applies to people using it through Haskell Language Server (see #37)
+                 "{- HLINT module ignore Redundant bracket -}"
         imports = "import qualified GHC.Records.Extra as Z"
         -- if you import two things that have preprocessor_unused, and export them as modules, you don't want them to clash
-        trailing modName = "_preprocessor_unused_" ++ uniq ++ " :: Z.HasField \"\" r a => r -> a;" ++
-                           "_preprocessor_unused_" ++ uniq ++ " = Z.getField @\"\""
+        trailing modName = "_recordDotPreprocessorUnused_" ++ uniq ++ " :: Z.HasField \"\" r a => r -> a;" ++
+                           "_recordDotPreprocessorUnused_" ++ uniq ++ " = Z.getField @\"\""
             where uniq = map (\x -> if isAlphaNum x then x else '_') $ concat $ take 19 $ takeWhile modPart $ map lexeme $ unparens modName
         modPart x = x == "." || all isUpper (take 1 x)
 

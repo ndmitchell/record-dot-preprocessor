@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    #37, make the output HLint clean
     Don't add the OverloadedLabels extension
 0.2.8, released 2021-02-21
     Support GHC 9.0
