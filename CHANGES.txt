@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2.9, released 2021-02-27
     #37, make the output HLint clean
     Don't add the OverloadedLabels extension
 0.2.8, released 2021-02-21
