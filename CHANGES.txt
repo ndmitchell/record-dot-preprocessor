@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2.10, released 2021-03-01
     #40, compatibility with qualified QuasiQuotes
     Emit LINE pragmas slightly earlier in some cases
     #37, do a better job at HLint clean
