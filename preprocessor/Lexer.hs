@@ -114,7 +114,10 @@ unlexerFile src xs =
         go ghcLine startLine ((i, x):xs) =
             (if emitDropping then dropping i else "") ++
             x ++
-            go ((if emitDropping then i else ghcLine) + length (filter (== '\n') x)) ("\n" `isSuffixOf` x) xs
+            go
+                ((if emitDropping then i else ghcLine) + length (filter (== '\n') x))
+                (if null x then startLine else "\n" `isSuffixOf` x)
+                xs
             where emitDropping = ghcLine /= i && i /= 0 && startLine
         go _ _ [] = ""
 
