@@ -58,8 +58,17 @@ isCtor _ = False
 -- instead relying on lack of whitespace in the opener and existence of a paired
 -- closed (@|]@)
 isQuasiQuotation :: PL -> Bool
-isQuasiQuotation (Paren (L "[") inner@(Item qq : Item (L "|") : _) (L "]"))
-    | Item close@(L "|") <- last inner = null (whitespace qq) && null (whitespace close)
+isQuasiQuotation (Paren open@(L "[") inner@(_:_) (L "]"))
+    | null (whitespace open)
+    , qname inner
+    , Item close@(L "|") <- last inner
+    , null (whitespace close)
+    = True
+    where
+        -- a (potentially) qualified name with no whitespace near it, ending with |
+        qname (Item a@(L _) : Item b@(L ".") : c) | null (whitespace a), null (whitespace b) = qname c
+        qname (Item a@(L _) : Item (L x):_) = "|" `isPrefixOf` x
+        qname _ = False
 isQuasiQuotation _ = False
 
 isField (x:_) = x == '_' || isLower x
