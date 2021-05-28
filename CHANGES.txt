@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2.11, released 2021-05-28
     #41, use qualified names in the plugin
 0.2.10, released 2021-03-01
     #40, compatibility with qualified QuasiQuotes
