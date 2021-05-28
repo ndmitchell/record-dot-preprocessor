@@ -55,7 +55,7 @@ var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
 onModule :: Module -> Module
 onModule x = x { hsmodImports = onImports $ hsmodImports x
-               , hsmodDecls = concatMap onDecl $ hsmodDecls x
+               , hsmodDecls = concatMap (onDecl (unLoc <$> hsmodName x)) $ hsmodDecls x
                }
 
 
@@ -108,19 +108,19 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
         vX = GHC.mkRdrUnqual $ GHC.mkVarOcc "x"
 
 
-onDecl :: LHsDecl GhcPs -> [LHsDecl GhcPs]
-onDecl o@(L _ (GHC.TyClD _ x)) = o :
+onDecl :: Maybe GHC.ModuleName -> LHsDecl GhcPs -> [LHsDecl GhcPs]
+onDecl modName o@(L _ (GHC.TyClD _ x)) = o :
     [ noL $ InstD noE $ instanceTemplate field (unLoc record) (unbang typ)
-    | let fields = nubOrdOn (\(_,_,x,_) -> GHC.occNameFS $ GHC.rdrNameOcc $ unLoc $ rdrNameFieldOcc x) $ getFields x
+    | let fields = nubOrdOn (\(_,_,x,_) -> GHC.occNameFS $ GHC.rdrNameOcc $ unLoc $ rdrNameFieldOcc x) $ getFields modName x
     , (record, _, field, typ) <- fields]
-onDecl x = [descendBi onExp x]
+onDecl _ x = [descendBi onExp x]
 
 unbang :: HsType GhcPs -> HsType GhcPs
 unbang (HsBangTy _ _ x) = unLoc x
 unbang x = x
 
-getFields :: TyClDecl GhcPs -> [(LHsType GhcPs, IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
-getFields DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_cons
+getFields :: Maybe GHC.ModuleName -> TyClDecl GhcPs -> [(LHsType GhcPs, IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
+getFields modName DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_cons
     where
         ctor (L _ ConDeclH98{con_args=RecCon (L _ fields),con_name=L _ name}) = concatMap (field name) fields
         ctor (L _ ConDeclGADT{con_args=RecCon (L _ fields),con_names=names}) = concat [field name fld | L _ name <- names, fld <- fields]
@@ -130,8 +130,11 @@ getFields DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_cons
         field _ _ = error "unknown field declaration in getFields"
 
         -- A value of this data declaration will have this type.
-        result = foldl (\x y -> noL $ HsAppTy noE x $ hsLTyVarBndrToType y) (noL $ HsTyVar noE GHC.NotPromoted tcdLName) $ hsq_explicit tcdTyVars
-getFields _ = []
+        result = foldl (\x y -> noL $ HsAppTy noE x $ hsLTyVarBndrToType y) (noL $ HsTyVar noE GHC.NotPromoted tyName) $ hsq_explicit tcdTyVars
+        tyName = case (tcdLName, modName) of
+            (L l (GHC.Unqual name), Just modName') -> L l (GHC.Qual modName' name)
+            _ -> tcdLName
+getFields _ _ = []
 
 
 -- At this point infix expressions have not had associativity/fixity applied, so they are bracketed
