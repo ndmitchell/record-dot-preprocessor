@@ -13,6 +13,9 @@ import GHC.Types.Basic
 import GHC.Unit.Types
 import GHC.Parser.Annotation
 #endif
+#if __GLASGOW_HASKELL__ > 901
+import GHC.Types.SourceText
+#endif
 #if __GLASGOW_HASKELL__ < 810
 import HsSyn as Compat
 #else
@@ -22,8 +25,8 @@ import GHC.Hs as Compat
 ---------------------------------------------------------------------
 -- UTILITIES
 
-noL :: e -> GenLocated SrcSpan e
-noL = noLoc
+noL :: e -> GenLocated (SrcSpanAnn' (EpAnn AnnListItem)) e
+noL = noLocA
 
 #if __GLASGOW_HASKELL__ < 810
 noE :: NoExt
@@ -41,10 +44,10 @@ realSrcLoc (RealSrcLoc x _) = Just x
 #endif
 realSrcLoc _ = Nothing
 
-#if __GLASGOW_HASKELL__ >= 900
-hsLTyVarBndrToType :: LHsTyVarBndr flag (GhcPass p) -> LHsType (GhcPass p)
-hsLTyVarBndrToType x = noL $ HsTyVar noE NotPromoted $ noL $ hsLTyVarName x
-#endif
+-- #if __GLASGOW_HASKELL__ >= 900
+-- hsLTyVarBndrToType :: LHsTyVarBndr flag (GhcPass p) -> LHsType (GhcPass p)
+-- hsLTyVarBndrToType x = noL $ HsTyVar noAnn NotPromoted $ noL $ hsLTyVarName x
+-- #endif
 
 ---------------------------------------------------------------------
 -- COMMON SIGNATURES
@@ -58,7 +61,7 @@ type Module = HsModule
 mkAppType :: LHsExpr GhcPs -> LHsType GhcPs -> LHsExpr GhcPs
 mkTypeAnn :: LHsExpr GhcPs -> LHsType GhcPs -> LHsExpr GhcPs
 mkFunTy :: LHsType GhcPs -> LHsType GhcPs -> LHsType GhcPs
-newFunBind :: Located RdrName -> MatchGroup GhcPs (LHsExpr GhcPs) -> HsBind GhcPs
+newFunBind :: LocatedN RdrName -> MatchGroup GhcPs (LHsExpr GhcPs) -> HsBind GhcPs
 
 #if __GLASGOW_HASKELL__ < 807
 
@@ -66,11 +69,18 @@ newFunBind :: Located RdrName -> MatchGroup GhcPs (LHsExpr GhcPs) -> HsBind GhcP
 mkAppType expr typ = noL $ HsAppType (HsWC noE typ) expr
 mkTypeAnn expr typ = noL $ ExprWithTySig (HsWC noE (HsIB noE typ)) expr
 
-#else
+#elif __GLASGOW_HASKELL__ < 901
 
 -- GHC 8.8+
 mkAppType expr typ = noL $ HsAppType noE expr (HsWC noE typ)
 mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsIB noE typ))
+
+#else
+
+-- GHC 9.2+
+mkAppType expr typ = noL $ HsAppType noSrcSpan expr (HsWC noE typ)
+mkTypeAnn expr typ = noL $ ExprWithTySig noAnn expr (hsTypeToHsSigWcType typ)
+--mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsOuterExplicit noE typ))
 
 #endif
 
@@ -80,10 +90,16 @@ mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsIB noE typ))
 mkFunTy a b = noL $ HsFunTy noE a b
 newFunBind a b = FunBind noE a b WpHole []
 
-#else
+#elif __GLASGOW_HASKELL__ < 901
 
 -- GHC 9.0
 mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow NormalSyntax) a b
+newFunBind a b = FunBind noE a b []
+
+#else
+
+-- GHC 9.2
+mkFunTy a b = noL $ HsFunTy noAnn (HsUnrestrictedArrow NormalSyntax) a b
 newFunBind a b = FunBind noE a b []
 
 #endif
@@ -117,17 +133,22 @@ qualifiedImplicitImport :: ModuleName -> LImportDecl GhcPs
 -- GHC 8.8
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing False False
     True {- qualified -} True {- implicit -} Nothing Nothing
-
 #elif __GLASGOW_HASKELL__ < 811
 
 -- GHC 8.10
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing False False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
-#else
+#elif __GLASGOW_HASKELL__ < 901
 
 -- GHC 9.0
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing NotBoot False
+    QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
+
+#else
+
+-- GHC 9.2
+qualifiedImplicitImport x = noL $ ImportDecl noAnn NoSourceText (noLoc x) Nothing NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
 #endif

@@ -18,7 +18,11 @@ import SrcLoc
 #else
 import GHC.Data.Bag
 import qualified GHC.Driver.Plugins as GHC
+#if __GLASGOW_HASKELL__ < 901
 import qualified GHC.Driver.Types as GHC
+#else
+import qualified GHC.Types.SourceText as GHC
+#endif
 import qualified GHC.Builtin.Names as GHC
 import qualified GHC.Plugins as GHC
 import GHC.Types.SrcLoc
