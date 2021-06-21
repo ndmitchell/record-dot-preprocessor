@@ -1,4 +1,4 @@
-cabal-version:      >= 1.18
+cabal-version:      1.18
 build-type:         Simple
 name:               record-dot-preprocessor
 version:            0.2.11
