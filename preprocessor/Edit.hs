@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 
-module Edit(edit) where
+module Edit(edit, editLoop) where
 
 import Lexer
 import Paren
