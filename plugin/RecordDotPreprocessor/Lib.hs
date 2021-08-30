@@ -6,7 +6,5 @@ import Paren as X
 
 runPreprocessStr :: String -> String
 runPreprocessStr input =
-    unlexerFile Nothing $ unparens $ editLoop $ paren $ lexer input
-    where
-        paren = parenOn lexeme [("(",")"),("[","]"),("{","}"),("`","`")]
+    unlexerFile Nothing $ unparens $ editLoop $ parens $ lexer input
 

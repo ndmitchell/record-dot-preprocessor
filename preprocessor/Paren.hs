@@ -1,9 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables, DeriveFunctor #-}
 
 -- Most of this module follows the Haskell report, https://www.haskell.org/onlinereport/lexemes.html
-module Paren(Paren(..), parenOn, unparen, unparens) where
+module Paren(Paren(..), parens, unparens) where
 
 import Data.Tuple.Extra
+import Lexer(Lexeme(..))
 
 -- | A list of items which are paranthesised.
 data Paren a
@@ -26,6 +27,8 @@ parenOn proj pairs = fst . go Nothing
         go close (x:xs) = first (Item x :) $ go close xs
         go close [] = ([], Nothing)
 
+parens :: [Lexeme] -> [Paren Lexeme]
+parens = parenOn lexeme [("(",")"),("[","]"),("{","}"),("`","`")]
 
 unparens :: [Paren a] -> [a]
 unparens = concatMap unparen
