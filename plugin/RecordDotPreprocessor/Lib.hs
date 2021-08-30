@@ -1,10 +1,3 @@
-module RecordDotPreprocessor.Lib (module X, runPreprocessStr) where 
+module RecordDotPreprocessor.Lib (module X) where
 
-import Edit as X (edit, editLoop)
-import Lexer as X
-import Paren as X
-
-runPreprocessStr :: String -> String
-runPreprocessStr input =
-    unlexerFile Nothing $ unparens $ editLoop $ parens $ lexer input
-
+import Edit as X

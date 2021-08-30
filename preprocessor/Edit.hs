@@ -1,6 +1,6 @@
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 
-module Edit(edit, editLoop) where
+module Edit(recordDotPreprocessor, recordDotPreprocessorOnFragment) where
 
 import Lexer
 import Paren
@@ -9,9 +9,14 @@ import Data.Char
 import Data.List.Extra
 import Control.Monad.Extra
 
+recordDotPreprocessor :: FilePath -> String -> String
+recordDotPreprocessor original = unlexerFile (Just original) . unparens . edit . parens . lexer
+    where
+        edit :: [PL] -> [PL]
+        edit = editAddPreamble . editAddInstances . editLoop
 
-edit :: [PL] -> [PL]
-edit = editAddPreamble . editAddInstances . editLoop
+recordDotPreprocessorOnFragment :: String -> String
+recordDotPreprocessorOnFragment = unlexerFile Nothing . unparens . editLoop . parens . lexer
 
 
 ---------------------------------------------------------------------

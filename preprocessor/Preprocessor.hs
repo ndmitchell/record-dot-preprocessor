@@ -1,8 +1,6 @@
 
 module Preprocessor(main) where
 
-import Lexer
-import Paren
 import Edit
 import System.IO.Extra
 import System.Environment
@@ -23,5 +21,5 @@ main = do
 
 runConvert :: FilePath -> FilePath -> FilePath -> IO ()
 runConvert original input output = do
-    res <- unlexerFile (Just original) . unparens . edit . parens . lexer <$> readFileUTF8' input
+    res <- recordDotPreprocessor original <$> readFileUTF8' input
     if output == "-" then putStrLn res else writeFileUTF8 output res
