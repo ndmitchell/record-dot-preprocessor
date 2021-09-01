@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2.12, released 2021-09-01
     #45, re-export preprocessor internals as library
 0.2.11, released 2021-05-28
     #41, use qualified names in the plugin
