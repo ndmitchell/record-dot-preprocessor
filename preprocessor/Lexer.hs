@@ -96,7 +96,7 @@ lexerWhitespace xs = ([], xs)
 seen xs = first (xs++)
 
 
-unlexerFile :: FilePath -> [Lexeme] -> String
+unlexerFile :: Maybe FilePath -> [Lexeme] -> String
 unlexerFile src xs =
     dropping 1 ++
     -- we split the whitespace up to increase the chances of startLine being true below
@@ -122,4 +122,6 @@ unlexerFile src xs =
         go _ _ [] = ""
 
         -- write out a line marker with a trailing newline
-        dropping n = "{-# LINE " ++ show n ++ " " ++ show src ++ " #-}\n"
+        dropping n = case src of
+          Just src' -> "{-# LINE " ++ show n ++ " " ++ show src' ++ " #-}\n"
+          Nothing -> ""
