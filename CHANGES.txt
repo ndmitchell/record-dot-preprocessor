@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    #46, make sure [a|b/|] gets treated as quasi quotes
 0.2.12, released 2021-09-01
     #45, re-export preprocessor internals as library
 0.2.11, released 2021-05-28

@@ -66,7 +66,8 @@ isQuasiQuotation :: PL -> Bool
 isQuasiQuotation (Paren open@(L "[") inner@(_:_) (L "]"))
     | null (whitespace open)
     , qname inner
-    , Item close@(L "|") <- last inner
+    , Item close@(L op) <- last inner
+    , "|" `isSuffixOf` op
     , null (whitespace close)
     = True
     where
