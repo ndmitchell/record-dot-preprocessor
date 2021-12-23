@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings, LambdaCase #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -23,7 +23,6 @@ import qualified GHC.Builtin.Names as GHC
 import qualified GHC.Plugins as GHC
 import GHC.Types.SrcLoc
 #endif
-
 
 ---------------------------------------------------------------------
 -- PLUGIN WRAPPER
@@ -122,12 +121,10 @@ unbang x = x
 getFields :: Maybe GHC.ModuleName -> TyClDecl GhcPs -> [(LHsType GhcPs, IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
 getFields modName DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_cons
     where
-        ctor (L _ ConDeclH98{con_args=RecCon (L _ fields),con_name=L _ name}) = concatMap (field name) fields
-        ctor (L _ ConDeclGADT{con_args=RecCon (L _ fields),con_names=names}) = concat [field name fld | L _ name <- names, fld <- fields]
-        ctor _ = []
+        ctor (L _ con) = [(result, name, fld, ty) | (name, fld, ty) <- conClosedFields (defVars tcdTyVars) con]
 
-        field name (L _ ConDeclField{cd_fld_type=L _ ty, ..}) = [(result, name, fld, ty) | L _ fld <- cd_fld_names]
-        field _ _ = error "unknown field declaration in getFields"
+        defVars :: LHsQTyVars GhcPs -> [GHC.RdrName]
+        defVars vars = [v | L _ v <- hsLTyVarLocNames vars]
 
         -- A value of this data declaration will have this type.
         result = foldl (\x y -> noL $ HsAppTy noE x $ hsLTyVarBndrToType y) (noL $ HsTyVar noE GHC.NotPromoted tyName) $ hsq_explicit tcdTyVars
@@ -136,6 +133,25 @@ getFields modName DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_c
             _ -> tcdLName
 getFields _ _ = []
 
+-- Extract filed and its type from declaration, omitting fields with existential/higher-kind types.
+conClosedFields :: [GHC.RdrName] -> ConDecl GhcPs -> [(IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
+conClosedFields resultVars = \case
+    ConDeclH98 {con_args = RecCon (L _ args), con_name, con_ex_tvs} ->
+        [ (unLoc con_name, unLoc name, unLoc ty)
+            | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
+                name <- cd_fld_names,
+                null (freeTyVars' ty \\ resultVars)
+        ]
+    ConDeclGADT {con_args = RecCon (L _ args), con_res_ty, con_names} ->
+         [ (unLoc con_name, unLoc name, unLoc ty)
+         | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
+             name <- cd_fld_names,
+             con_name <- con_names,
+             null (freeTyVars ty \\ freeTyVars con_res_ty)
+         ]
+    _ -> []
+    where
+        freeTyVars' ty = unLoc <$> freeTyVars ty
 
 -- At this point infix expressions have not had associativity/fixity applied, so they are bracketed
 -- a + b + c ==> (a + b) + c

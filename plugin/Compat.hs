@@ -8,10 +8,12 @@ import GHC
 #if __GLASGOW_HASKELL__ < 900
 import BasicTypes
 import TcEvidence
+import RnTypes as Compat
 #else
 import GHC.Types.Basic
 import GHC.Unit.Types
 import GHC.Parser.Annotation
+import GHC.Rename.HsType as Compat
 #endif
 #if __GLASGOW_HASKELL__ < 810
 import HsSyn as Compat
@@ -130,4 +132,9 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing Fa
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
+#endif
+#if __GLASGOW_HASKELL__ < 900
+freeTyVars = freeKiTyVarsAllVars . extractHsTyRdrTyVars
+#else
+freeTyVars = extractHsTyRdrTyVars
 #endif
