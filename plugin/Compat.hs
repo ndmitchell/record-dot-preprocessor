@@ -133,7 +133,8 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing No
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
 #endif
-#if __GLASGOW_HASKELL__ < 900
+
+#if __GLASGOW_HASKELL__ < 810
 freeTyVars = freeKiTyVarsAllVars . extractHsTyRdrTyVars
 #else
 freeTyVars = extractHsTyRdrTyVars
