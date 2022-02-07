@@ -139,15 +139,15 @@ conClosedFields resultVars = \case
     ConDeclH98 {con_args = RecCon (L _ args), con_name, con_ex_tvs} ->
         [ (unLoc con_name, unLoc name, unLoc ty)
             | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
-                name <- cd_fld_names,
-                null (freeTyVars' ty \\ resultVars)
+                null (freeTyVars' ty \\ resultVars),
+                name <- cd_fld_names
         ]
     ConDeclGADT {con_args = RecCon (L _ args), con_res_ty, con_names} ->
          [ (unLoc con_name, unLoc name, unLoc ty)
          | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
+             null (freeTyVars ty \\ freeTyVars con_res_ty),
              name <- cd_fld_names,
-             con_name <- con_names,
-             null (freeTyVars ty \\ freeTyVars con_res_ty)
+             con_name <- con_names
          ]
     _ -> []
     where
