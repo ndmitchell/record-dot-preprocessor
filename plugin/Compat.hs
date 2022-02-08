@@ -157,6 +157,7 @@ dropRnTraceFlags = id
 
 freeTyVars :: PluginEnv => LHsType GhcPs -> [Located RdrName]
 #if __GLASGOW_HASKELL__ < 808
+{-# NOINLINE freeTyVars #-}
 freeTyVars  = freeKiTyVarsAllVars . runRnM . extractHsTyRdrTyVars
   where
     runRnM :: RnM a -> a
