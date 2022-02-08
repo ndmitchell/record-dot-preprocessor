@@ -21,6 +21,7 @@ import SrcLoc
 import GHC.Data.Bag
 import qualified GHC.Driver.Plugins as GHC
 import qualified GHC.Driver.Types as GHC
+import qualified GHC.Driver.Main as HscMain
 import qualified GHC.Builtin.Names as GHC
 import qualified GHC.Plugins as GHC
 import GHC.Types.SrcLoc
