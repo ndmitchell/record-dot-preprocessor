@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ImplicitParams #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -19,6 +21,13 @@ import GHC.Rename.HsType as Compat
 import HsSyn as Compat
 #else
 import GHC.Hs as Compat
+#endif
+#if __GLASGOW_HASKELL__ < 808
+import System.IO.Unsafe as Compat (unsafePerformIO)
+import Data.IORef as Compat
+import TcRnTypes
+import IOEnv
+import UniqSupply
 #endif
 
 ---------------------------------------------------------------------
@@ -134,7 +143,22 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing No
 
 #endif
 
-#if __GLASGOW_HASKELL__ < 810
+#if __GLASGOW_HASKELL__ < 808
+type PluginEnv = (?hscenv :: HscEnv, ?uniqSupply :: IORef UniqSupply)
+#else
+type PluginEnv = ()
+#endif
+
+freeTyVars :: PluginEnv => LHsType GhcPs -> [Located RdrName]
+#if __GLASGOW_HASKELL__ < 808
+freeTyVars  = freeKiTyVarsAllVars . runRnM . extractHsTyRdrTyVars
+  where
+    runRnM :: RnM a -> a
+    runRnM rnm = unsafePerformIO $ do
+      let env = Env ?hscenv ?uniqSupply unused unused
+      runIOEnv env rnm
+    unused = error "never called"
+#elif __GLASGOW_HASKELL__ < 810
 freeTyVars = freeKiTyVarsAllVars . extractHsTyRdrTyVars
 #else
 freeTyVars = extractHsTyRdrTyVars
