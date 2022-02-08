@@ -28,6 +28,8 @@ import Data.IORef as Compat
 import TcRnTypes
 import IOEnv
 import UniqSupply
+import DynFlags
+import HscTypes
 #endif
 
 ---------------------------------------------------------------------
@@ -145,6 +147,10 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing No
 
 #if __GLASGOW_HASKELL__ < 808
 type PluginEnv = (?hscenv :: HscEnv, ?uniqSupply :: IORef UniqSupply)
+
+dropRnTraceFlags :: HscEnv -> HscEnv
+dropRnTraceFlags env@HscEnv{hsc_dflags = dflags} =  env{hsc_dflags = dopt_unset dflags Opt_D_dump_rn_trace}
+
 #else
 type PluginEnv = ()
 #endif

@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings, LambdaCase #-}
-{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE ImplicitParams, ScopedTypeVariables #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -37,7 +37,7 @@ plugin = GHC.defaultPlugin
     where
         parsedResultAction _cliOptions _modSummary x = do
 #if __GLASGOW_HASKELL__ < 900
-            hscenv <- GHC.Hsc (\env w -> pure (env, w))
+            hscenv <- GHC.Hsc (\env w -> pure (dropRnTraceFlags env, w))
             uniqSupply <- GHC.liftIO (GHC.mkSplitUniqSupply '0')
             uniqSupplyRef <- GHC.liftIO $ newIORef uniqSupply
             let ?hscenv = hscenv
