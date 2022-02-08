@@ -11,11 +11,13 @@ import GHC
 import BasicTypes
 import TcEvidence
 import RnTypes as Compat
+import UniqSupply
 #else
 import GHC.Types.Basic
 import GHC.Unit.Types
 import GHC.Parser.Annotation
 import GHC.Rename.HsType as Compat
+import GHC.Types.Unique.Supply
 #endif
 #if __GLASGOW_HASKELL__ < 810
 import HsSyn as Compat
@@ -24,13 +26,12 @@ import GHC.Hs as Compat
 #endif
 #if __GLASGOW_HASKELL__ < 808
 import System.IO.Unsafe as Compat (unsafePerformIO)
-import Data.IORef as Compat
 import TcRnTypes
 import IOEnv
-import UniqSupply
 import DynFlags
 import HscTypes
 #endif
+import Data.IORef as Compat
 
 ---------------------------------------------------------------------
 -- UTILITIES
@@ -145,14 +146,13 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing No
 
 #endif
 
-#if __GLASGOW_HASKELL__ < 808
 type PluginEnv = (?hscenv :: HscEnv, ?uniqSupply :: IORef UniqSupply)
 
 dropRnTraceFlags :: HscEnv -> HscEnv
+#if __GLASGOW_HASKELL__ < 808
 dropRnTraceFlags env@HscEnv{hsc_dflags = dflags} =  env{hsc_dflags = dopt_unset dflags Opt_D_dump_rn_trace}
-
 #else
-type PluginEnv = ()
+dropRnTraceFlags = id
 #endif
 
 freeTyVars :: PluginEnv => LHsType GhcPs -> [Located RdrName]

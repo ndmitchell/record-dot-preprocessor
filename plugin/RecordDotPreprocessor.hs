@@ -37,13 +37,11 @@ plugin = GHC.defaultPlugin
     }
     where
         parsedResultAction _cliOptions _modSummary x = do
-#if __GLASGOW_HASKELL__ < 808 
-            hscenv <- dropRnTraceFlags <$> HscMain.getHscEnv 
+            hscenv <- dropRnTraceFlags <$> HscMain.getHscEnv
             uniqSupply <- GHC.liftIO (GHC.mkSplitUniqSupply '0')
             uniqSupplyRef <- GHC.liftIO $ newIORef uniqSupply
             let ?hscenv = hscenv
             let ?uniqSupply = uniqSupplyRef
-#endif
             pure x{GHC.hpm_module = onModule <$> GHC.hpm_module x}
 
 
