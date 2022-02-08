@@ -14,6 +14,7 @@ import qualified GHC
 #if __GLASGOW_HASKELL__ < 900
 import Bag
 import qualified GhcPlugins as GHC
+import qualified HscMain
 import qualified PrelNames as GHC
 import SrcLoc
 #else
@@ -36,8 +37,8 @@ plugin = GHC.defaultPlugin
     }
     where
         parsedResultAction _cliOptions _modSummary x = do
-#if __GLASGOW_HASKELL__ < 900
-            hscenv <- GHC.Hsc (\env w -> pure (dropRnTraceFlags env, w))
+#if __GLASGOW_HASKELL__ < 808 
+            hscenv <- dropRnTraceFlags <$> HscMain.getHscEnv 
             uniqSupply <- GHC.liftIO (GHC.mkSplitUniqSupply '0')
             uniqSupplyRef <- GHC.liftIO $ newIORef uniqSupply
             let ?hscenv = hscenv
