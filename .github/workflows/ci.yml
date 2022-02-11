@@ -17,6 +17,7 @@ jobs:
         # and not in CI - so exclude it
         include:
         - os: macOS-latest
+          ghc: "8.10"
 
     steps:
     - run: git config --global core.autocrlf false
