@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings, LambdaCase #-}
+{-# LANGUAGE ImplicitParams, ScopedTypeVariables #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -13,17 +14,18 @@ import qualified GHC
 #if __GLASGOW_HASKELL__ < 900
 import Bag
 import qualified GhcPlugins as GHC
+import qualified HscMain
 import qualified PrelNames as GHC
 import SrcLoc
 #else
 import GHC.Data.Bag
 import qualified GHC.Driver.Plugins as GHC
 import qualified GHC.Driver.Types as GHC
+import qualified GHC.Driver.Main as HscMain
 import qualified GHC.Builtin.Names as GHC
 import qualified GHC.Plugins as GHC
 import GHC.Types.SrcLoc
 #endif
-
 
 ---------------------------------------------------------------------
 -- PLUGIN WRAPPER
@@ -31,9 +33,17 @@ import GHC.Types.SrcLoc
 -- | GHC plugin.
 plugin :: GHC.Plugin
 plugin = GHC.defaultPlugin
-    { GHC.parsedResultAction = \_cliOptions _modSummary x -> pure x{GHC.hpm_module = onModule <$> GHC.hpm_module x}
+    { GHC.parsedResultAction = parsedResultAction
     , GHC.pluginRecompile = GHC.purePlugin
     }
+    where
+        parsedResultAction _cliOptions _modSummary x = do
+            hscenv <- dropRnTraceFlags <$> HscMain.getHscEnv
+            uniqSupply <- GHC.liftIO (GHC.mkSplitUniqSupply '0')
+            uniqSupplyRef <- GHC.liftIO $ newIORef uniqSupply
+            let ?hscenv = hscenv
+            let ?uniqSupply = uniqSupplyRef
+            pure x{GHC.hpm_module = onModule <$> GHC.hpm_module x}
 
 
 ---------------------------------------------------------------------
@@ -53,7 +63,7 @@ var_setField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "setField"
 var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
 
-onModule :: Module -> Module
+onModule :: PluginEnv => Module -> Module
 onModule x = x { hsmodImports = onImports $ hsmodImports x
                , hsmodDecls = concatMap (onDecl (unLoc <$> hsmodName x)) $ hsmodDecls x
                }
@@ -108,7 +118,7 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl noE (HsIB no
         vX = GHC.mkRdrUnqual $ GHC.mkVarOcc "x"
 
 
-onDecl :: Maybe GHC.ModuleName -> LHsDecl GhcPs -> [LHsDecl GhcPs]
+onDecl :: PluginEnv => Maybe GHC.ModuleName -> LHsDecl GhcPs -> [LHsDecl GhcPs]
 onDecl modName o@(L _ (GHC.TyClD _ x)) = o :
     [ noL $ InstD noE $ instanceTemplate field (unLoc record) (unbang typ)
     | let fields = nubOrdOn (\(_,_,x,_) -> GHC.occNameFS $ GHC.rdrNameOcc $ unLoc $ rdrNameFieldOcc x) $ getFields modName x
@@ -119,15 +129,13 @@ unbang :: HsType GhcPs -> HsType GhcPs
 unbang (HsBangTy _ _ x) = unLoc x
 unbang x = x
 
-getFields :: Maybe GHC.ModuleName -> TyClDecl GhcPs -> [(LHsType GhcPs, IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
+getFields :: PluginEnv => Maybe GHC.ModuleName -> TyClDecl GhcPs -> [(LHsType GhcPs, IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
 getFields modName DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_cons
     where
-        ctor (L _ ConDeclH98{con_args=RecCon (L _ fields),con_name=L _ name}) = concatMap (field name) fields
-        ctor (L _ ConDeclGADT{con_args=RecCon (L _ fields),con_names=names}) = concat [field name fld | L _ name <- names, fld <- fields]
-        ctor _ = []
+        ctor (L _ con) = [(result, name, fld, ty) | (name, fld, ty) <- conClosedFields (defVars tcdTyVars) con]
 
-        field name (L _ ConDeclField{cd_fld_type=L _ ty, ..}) = [(result, name, fld, ty) | L _ fld <- cd_fld_names]
-        field _ _ = error "unknown field declaration in getFields"
+        defVars :: LHsQTyVars GhcPs -> [GHC.RdrName]
+        defVars vars = [v | L _ v <- hsLTyVarLocNames vars]
 
         -- A value of this data declaration will have this type.
         result = foldl (\x y -> noL $ HsAppTy noE x $ hsLTyVarBndrToType y) (noL $ HsTyVar noE GHC.NotPromoted tyName) $ hsq_explicit tcdTyVars
@@ -136,6 +144,25 @@ getFields modName DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_c
             _ -> tcdLName
 getFields _ _ = []
 
+-- Extract filed and its type from declaration, omitting fields with existential/higher-kind types.
+conClosedFields :: PluginEnv => [GHC.RdrName] -> ConDecl GhcPs -> [(IdP GhcPs, FieldOcc GhcPs, HsType GhcPs)]
+conClosedFields resultVars = \case
+    ConDeclH98 {con_args = RecCon (L _ args), con_name, con_ex_tvs} ->
+        [ (unLoc con_name, unLoc name, unLoc ty)
+            | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
+                null (freeTyVars' ty \\ resultVars),
+                name <- cd_fld_names
+        ]
+    ConDeclGADT {con_args = RecCon (L _ args), con_res_ty, con_names} ->
+         [ (unLoc con_name, unLoc name, unLoc ty)
+         | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
+             null (freeTyVars ty \\ freeTyVars con_res_ty),
+             name <- cd_fld_names,
+             con_name <- con_names
+         ]
+    _ -> []
+    where
+        freeTyVars' ty = unLoc <$> freeTyVars ty
 
 -- At this point infix expressions have not had associativity/fixity applied, so they are bracketed
 -- a + b + c ==> (a + b) + c

@@ -2,6 +2,8 @@
 
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wincomplete-record-updates -Wno-unused-top-binds #-} -- can we produce -Wall clean code
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds, KindSignatures #-} -- also tests we put language extensions before imports
+-- 8.8+ doesn't need it to be set explicitly
+{-# LANGUAGE ExistentialQuantification #-}
 
 import Control.Exception
 import Data.Version
@@ -217,6 +219,16 @@ type family C (f :: T.Type -> T.Type) (a :: T.Type) :: T.Type where
     C (Nullable c) a = C c (Maybe a)
     C f a = f a
 
+-- Existential typed field xc' need to be omitted from types, otherwise
+-- compiler produce following error:
+--    • Illegal instance declaration for
+--        ‘GHC.Records.Extra.HasField "xc'" (Existential a) aplg’
+--        The liberal coverage condition fails in class ‘GHC.Records.Extra.HasField’
+--          for functional dependency: ‘x r -> a’
+--        Reason: lhs types ‘"xc'"’, ‘Existential a’
+--          do not jointly determine rhs type ‘aplg’
+--        Un-determined variable: aplg
+data Existential a = forall b. Bar { xa :: a, xb :: !a, xc' :: b }
 
 data Foo9 f = Foo9 {
   bar :: C f Int,

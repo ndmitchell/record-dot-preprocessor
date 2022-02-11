@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ImplicitParams #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -8,16 +10,28 @@ import GHC
 #if __GLASGOW_HASKELL__ < 900
 import BasicTypes
 import TcEvidence
+import RnTypes as Compat
+import UniqSupply
 #else
 import GHC.Types.Basic
 import GHC.Unit.Types
 import GHC.Parser.Annotation
+import GHC.Rename.HsType as Compat
+import GHC.Types.Unique.Supply
 #endif
 #if __GLASGOW_HASKELL__ < 810
 import HsSyn as Compat
 #else
 import GHC.Hs as Compat
 #endif
+#if __GLASGOW_HASKELL__ < 808
+import System.IO.Unsafe as Compat (unsafePerformIO)
+import TcRnTypes
+import IOEnv
+import DynFlags
+import HscTypes
+#endif
+import Data.IORef as Compat
 
 ---------------------------------------------------------------------
 -- UTILITIES
@@ -130,4 +144,29 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing Fa
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
+#endif
+
+type PluginEnv = (?hscenv :: HscEnv, ?uniqSupply :: IORef UniqSupply)
+
+dropRnTraceFlags :: HscEnv -> HscEnv
+#if __GLASGOW_HASKELL__ < 808
+dropRnTraceFlags env@HscEnv{hsc_dflags = dflags} =  env{hsc_dflags = dopt_unset dflags Opt_D_dump_rn_trace}
+#else
+dropRnTraceFlags = id
+#endif
+
+freeTyVars :: PluginEnv => LHsType GhcPs -> [Located RdrName]
+#if __GLASGOW_HASKELL__ < 808
+{-# NOINLINE freeTyVars #-}
+freeTyVars  = freeKiTyVarsAllVars . runRnM . extractHsTyRdrTyVars
+  where
+    runRnM :: RnM a -> a
+    runRnM rnm = unsafePerformIO $ do
+      let env = Env ?hscenv ?uniqSupply unused unused
+      runIOEnv env rnm
+    unused = error "never called"
+#elif __GLASGOW_HASKELL__ < 810
+freeTyVars = freeKiTyVarsAllVars . extractHsTyRdrTyVars
+#else
+freeTyVars = extractHsTyRdrTyVars
 #endif
