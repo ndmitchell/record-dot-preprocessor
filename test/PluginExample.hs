@@ -19,6 +19,9 @@ main = pure ()
 {-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, TypeFamilies, TypeOperators, GADTs, UndecidableInstances #-}
 -- things that are now treated as comments
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wno-incomplete-record-updates -Wno-unused-top-binds #-}
+#if __GLASGOW_HASKELL__ >=902
+{-# OPTIONS_GHC -Wno-ambiguous-fields #-}
+#endif
 {-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, KindSignatures #-}
 #if __GLASGOW_HASKELL__ < 808
 -- 8.8+ doesn't need it to be set explicitly

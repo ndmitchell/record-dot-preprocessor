@@ -1,12 +1,22 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE TypeFamilies #-}
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
 module Compat(module Compat) where
 
 import GHC
+#if __GLASGOW_HASKELL__ > 901
+import GHC.Types.SourceText ( SourceText(NoSourceText) )
+import GHC.Data.FastString (FastString, NonDetFastString (NonDetFastString))
+#elif __GLASGOW_HASKELL__ >=900
+import GHC.Data.FastString (FastString)
+#else
+import FastString (FastString)
+#endif
+
 #if __GLASGOW_HASKELL__ < 900
 import BasicTypes
 import TcEvidence
@@ -39,7 +49,42 @@ import Data.IORef as Compat
 noL :: e -> GenLocated SrcSpan e
 noL = noLoc
 
+#if __GLASGOW_HASKELL__ < 902
+noLA :: e -> GenLocated SrcSpan e
+noLA = noL
+
+emptyComments :: NoExtField
+emptyComments = noE
+
+noAnn :: NoExtField
+noAnn = noE
+
+reLocA :: Located e -> Located e
+reLocA = id
+
+reLoc :: Located e -> Located e
+reLoc = id
+
+mkNonDetFastString :: FastString -> FastString
+mkNonDetFastString = id
+
+noL' :: e -> GenLocated SrcSpan e
+noL' = noL
+
+#else
+noLA :: e -> LocatedAn ann e
+noLA = reLocA . noL
+
+noL' :: a -> a
+noL' = id
+
+mkNonDetFastString :: FastString -> NonDetFastString
+mkNonDetFastString = NonDetFastString
+#endif
+
 #if __GLASGOW_HASKELL__ < 810
+type NoExtField = NoExt
+
 noE :: NoExt
 noE = NoExt
 #else
@@ -55,7 +100,10 @@ realSrcLoc (RealSrcLoc x _) = Just x
 #endif
 realSrcLoc _ = Nothing
 
-#if __GLASGOW_HASKELL__ >= 900
+#if __GLASGOW_HASKELL__ >= 902
+hsLTyVarBndrToType :: (Anno (IdP (GhcPass p)) ~ SrcSpanAnn' (EpAnn NameAnn)) => LHsTyVarBndr flag (GhcPass p) -> LHsType (GhcPass p)
+hsLTyVarBndrToType x = noLA $ HsTyVar noAnn NotPromoted $ noLA $ hsLTyVarName x
+#elif __GLASGOW_HASKELL__ >= 900
 hsLTyVarBndrToType :: LHsTyVarBndr flag (GhcPass p) -> LHsType (GhcPass p)
 hsLTyVarBndrToType x = noL $ HsTyVar noE NotPromoted $ noL $ hsLTyVarName x
 #endif
@@ -80,11 +128,17 @@ newFunBind :: Located RdrName -> MatchGroup GhcPs (LHsExpr GhcPs) -> HsBind GhcP
 mkAppType expr typ = noL $ HsAppType (HsWC noE typ) expr
 mkTypeAnn expr typ = noL $ ExprWithTySig (HsWC noE (HsIB noE typ)) expr
 
-#else
+#elif __GLASGOW_HASKELL__ < 901
 
--- GHC 8.8+
+-- GHC 8.8-9.0
 mkAppType expr typ = noL $ HsAppType noE expr (HsWC noE typ)
 mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsIB noE typ))
+
+#else
+
+-- GHC 9.2+
+mkAppType expr typ = noLA $ HsAppType noSrcSpan expr (HsWC noE typ)
+mkTypeAnn expr typ = noLA $ ExprWithTySig noAnn expr (hsTypeToHsSigWcType typ)
 
 #endif
 
@@ -97,8 +151,8 @@ newFunBind a b = FunBind noE a b WpHole []
 #else
 
 -- GHC 9.0
-mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow NormalSyntax) a b
-newFunBind a b = FunBind noE a b []
+mkFunTy a b = noLA $ HsFunTy noAnn (HsUnrestrictedArrow NormalSyntax) a b
+newFunBind a b = FunBind noE (reLocA a) b []
 
 #endif
 
@@ -119,7 +173,7 @@ compat_m_pats = id
 
 -- 8.10
 compat_m_pats :: [Pat GhcPs] -> [LPat GhcPs]
-compat_m_pats = map noL
+compat_m_pats = map noLA
 
 #endif
 
@@ -141,7 +195,7 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing Fa
 #else
 
 -- GHC 9.0
-qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing NotBoot False
+qualifiedImplicitImport x = noLA $ ImportDecl noAnn NoSourceText (noLA x) Nothing NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
 #endif
@@ -168,5 +222,5 @@ freeTyVars  = freeKiTyVarsAllVars . runRnM . extractHsTyRdrTyVars
 #elif __GLASGOW_HASKELL__ < 810
 freeTyVars = freeKiTyVarsAllVars . extractHsTyRdrTyVars
 #else
-freeTyVars = extractHsTyRdrTyVars
+freeTyVars = map reLoc . extractHsTyRdrTyVars
 #endif
