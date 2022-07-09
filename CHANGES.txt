@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2.15, released 2022-07-09
     #50, support GHC 9.2
     #50, add ghc version bounds
 0.2.14, released 2022-02-11
