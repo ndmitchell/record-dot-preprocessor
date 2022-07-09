@@ -1,5 +1,7 @@
 Changelog for record-dot-preprocessor
 
+    #50, support GHC 9.2
+    #50, add ghc version bounds
 0.2.14, released 2022-02-11
     #48, do not derive HasField for existentials
 0.2.13, released 2021-11-03
