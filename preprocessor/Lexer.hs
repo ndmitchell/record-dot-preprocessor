@@ -40,7 +40,7 @@ lexer = go1 1 1
         go line col xs
             | (lexeme, xs) <- lexerLexeme xs
             , (whitespace, xs) <- lexerWhitespace xs
-            , (line2, col2) <- reposition line col $ whitespace ++ lexeme
+            , (line2, col2) <- reposition line col $ lexeme ++ whitespace
             = Lexeme{..} : go line2 col2 xs
 
 
