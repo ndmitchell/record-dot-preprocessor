@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+    #52, properly deal with nested block comments
 0.2.15, released 2022-07-09
     #50, support GHC 9.2
     #50, add ghc version bounds
