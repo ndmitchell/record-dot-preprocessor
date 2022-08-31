@@ -88,6 +88,7 @@ lexerWhitespace ('-':'-':xs)
 lexerWhitespace ('{':'-':xs) = seen "{-" $ f 1 xs
     where
         f 1 ('-':'}':xs) = seen "-}" $ lexerWhitespace xs
+        f i ('-':'}':xs) = seen "-}" $ f (i-1) xs
         f i ('{':'-':xs) = seen "{-" $ f (i+1) xs
         f i (x:xs) = seen [x] $ f i xs
         f i [] = ([], [])
