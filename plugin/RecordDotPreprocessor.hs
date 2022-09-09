@@ -172,6 +172,7 @@ conClosedFields resultVars = \case
         [ (unLoc con_name, unLoc name, unLoc ty)
             | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
                 null (freeTyVars' ty \\ resultVars),
+                not $ isLHsForAllTy ty,
                 name <- cd_fld_names
         ]
 #if __GLASGOW_HASKELL__ >= 901

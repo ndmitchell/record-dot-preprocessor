@@ -16,7 +16,7 @@ main = pure ()
 #else
 
 {-# OPTIONS_GHC -fplugin=RecordDotPreprocessor #-}
-{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, TypeFamilies, TypeOperators, GADTs, UndecidableInstances #-}
+{-# LANGUAGE DuplicateRecordFields, TypeApplications, FlexibleContexts, DataKinds, MultiParamTypeClasses, TypeSynonymInstances, FlexibleInstances, TypeFamilies, TypeOperators, GADTs, UndecidableInstances, RankNTypes #-}
 -- things that are now treated as comments
 {-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wno-incomplete-record-updates -Wno-unused-top-binds #-}
 #if __GLASGOW_HASKELL__ >=902
@@ -28,7 +28,14 @@ main = pure ()
 {-# LANGUAGE ExistentialQuantification #-}
 #endif
 
+{-# LANGUAGE RankNTypes #-}
 module PluginExample where
 #include "../examples/Both.hs"
+
+data PolyField = PolyField
+    { polyField :: forall a. a -> IO ()
+    }
+
+
 
 #endif
