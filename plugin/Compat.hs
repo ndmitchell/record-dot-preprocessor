@@ -31,7 +31,6 @@ import GHC.Types.Unique.Supply
 #endif
 #if __GLASGOW_HASKELL__ < 810
 import HsSyn as Compat
-import HsTypes as Compat
 #else
 import GHC.Hs as Compat
 #endif
