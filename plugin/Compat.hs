@@ -25,7 +25,9 @@ import UniqSupply
 #else
 import GHC.Types.Basic
 import GHC.Unit.Types
+#if __GLASGOW_HASKELL__ < 920
 import GHC.Parser.Annotation
+#endif
 import GHC.Rename.HsType as Compat
 import GHC.Types.Unique.Supply
 #endif
