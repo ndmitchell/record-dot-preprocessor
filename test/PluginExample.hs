@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE GADTs #-}
 
 #if __GLASGOW_HASKELL__ < 806
 
@@ -36,6 +37,7 @@ data PolyField = PolyField
     { polyField :: forall a. a -> IO ()
     }
 
-
+data PolyGieldGADTs where
+    PolyFieldGADTs :: { a' :: forall a. a } -> PolyGieldGADTs
 
 #endif
