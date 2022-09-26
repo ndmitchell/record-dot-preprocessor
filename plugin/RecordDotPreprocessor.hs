@@ -172,7 +172,7 @@ conClosedFields resultVars = \case
         [ (unLoc con_name, unLoc name, unLoc ty)
             | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
                 null (freeTyVars' ty \\ resultVars),
-                not $ GHC.isLHsForAllTy ty,
+                isValidFieldTy ty,
                 name <- cd_fld_names
         ]
 #if __GLASGOW_HASKELL__ >= 901
@@ -183,13 +183,18 @@ conClosedFields resultVars = \case
          [ (unLoc con_name, unLoc name, unLoc ty)
          | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
              null (freeTyVars ty \\ freeTyVars con_res_ty),
-             not $ GHC.isLHsForAllTy ty,
+             isValidFieldTy ty,
              name <- cd_fld_names,
              con_name <- con_names
          ]
     _ -> []
     where
         freeTyVars' ty = unLoc <$> freeTyVars ty
+
+        isValidFieldTy :: LHsType p -> Bool
+        isValidFieldTy (L _ (HsForAllTy {})) = False
+        isValidFieldTy (L _ (HsQualTy {}))   = False
+        isValidFieldTy _                     = True
 
 -- At this point infix expressions have not had associativity/fixity applied, so they are bracketed
 -- a + b + c ==> (a + b) + c
