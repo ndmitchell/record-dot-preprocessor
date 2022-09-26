@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings, LambdaCase #-}
 {-# LANGUAGE ImplicitParams, ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 902
+{-# LANGUAGE TypeApplications #-}
+#endif
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -191,10 +194,17 @@ conClosedFields resultVars = \case
     where
         freeTyVars' ty = unLoc <$> freeTyVars ty
 
+#if __GLASGOW_HASKELL__ >= 902
+        isValidFieldTy :: forall p. UnXRec p => LHsType p -> Bool
+        isValidFieldTy (unXRec @p -> ty) =
+#else
         isValidFieldTy :: LHsType p -> Bool
-        isValidFieldTy (L _ (HsForAllTy {})) = False
-        isValidFieldTy (L _ (HsQualTy {}))   = False
-        isValidFieldTy _                     = True
+        isValidFieldTy (unLoc -> ty) =
+#endif
+          case ty of
+            (HsForAllTy {}) -> False
+            (HsQualTy {})   -> False
+            _               -> True
 
 -- At this point infix expressions have not had associativity/fixity applied, so they are bracketed
 -- a + b + c ==> (a + b) + c
