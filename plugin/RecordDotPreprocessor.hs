@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE RecordWildCards, ViewPatterns, NamedFieldPuns, OverloadedStrings, LambdaCase #-}
 {-# LANGUAGE ImplicitParams, ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 902
+{-# LANGUAGE TypeApplications #-}
+#endif
 {- HLINT ignore "Use camelCase" -}
 
 -- | Module containing the plugin.
@@ -172,7 +175,7 @@ conClosedFields resultVars = \case
         [ (unLoc con_name, unLoc name, unLoc ty)
             | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
                 null (freeTyVars' ty \\ resultVars),
-                not $ GHC.isLHsForAllTy ty,
+                isValidFieldTy ty,
                 name <- cd_fld_names
         ]
 #if __GLASGOW_HASKELL__ >= 901
@@ -183,13 +186,25 @@ conClosedFields resultVars = \case
          [ (unLoc con_name, unLoc name, unLoc ty)
          | ConDeclField {cd_fld_names, cd_fld_type = ty} <- universeBi args,
              null (freeTyVars ty \\ freeTyVars con_res_ty),
-             not $ GHC.isLHsForAllTy ty,
+             isValidFieldTy ty,
              name <- cd_fld_names,
              con_name <- con_names
          ]
     _ -> []
     where
         freeTyVars' ty = unLoc <$> freeTyVars ty
+
+#if __GLASGOW_HASKELL__ >= 902
+        isValidFieldTy :: forall p. UnXRec p => LHsType p -> Bool
+        isValidFieldTy (unXRec @p -> ty) =
+#else
+        isValidFieldTy :: LHsType p -> Bool
+        isValidFieldTy (unLoc -> ty) =
+#endif
+          case ty of
+            (HsForAllTy {}) -> False
+            (HsQualTy {})   -> False
+            _               -> True
 
 -- At this point infix expressions have not had associativity/fixity applied, so they are bracketed
 -- a + b + c ==> (a + b) + c
