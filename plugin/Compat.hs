@@ -226,3 +226,9 @@ freeTyVars = freeKiTyVarsAllVars . extractHsTyRdrTyVars
 #else
 freeTyVars = map reLoc . extractHsTyRdrTyVars
 #endif
+
+#if __GLASGOW_HASKELL__ >= 902
+isLHsForAllTy :: LHsType GhcPs -> Bool
+isLHsForAllTy (L _ (HsForAllTy {})) = True
+isLHsForAllTy _                     = False
+#endif
