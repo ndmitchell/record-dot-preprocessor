@@ -8,7 +8,7 @@ license-file:       LICENSE
 category:           Development
 author:             Neil Mitchell <ndmitchell@gmail.com>
 maintainer:         Neil Mitchell <ndmitchell@gmail.com>
-copyright:          Neil Mitchell 2018-2022
+copyright:          Neil Mitchell 2018-2023
 synopsis:           Preprocessor to allow record.field syntax
 description:
     In almost every programming language @a.b@ will get the @b@ field from the @a@ data type, and many different data types can have a @b@ field.
