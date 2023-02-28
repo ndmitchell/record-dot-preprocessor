@@ -43,11 +43,13 @@ plugin = GHC.defaultPlugin
     }
     where
         parsedResultAction _cliOptions _modSummary x = do
+            GHC.liftIO $ putStrLn "<RDP>"
             hscenv <- dropRnTraceFlags <$> HscMain.getHscEnv
             uniqSupply <- GHC.liftIO (GHC.mkSplitUniqSupply '0')
             uniqSupplyRef <- GHC.liftIO $ newIORef uniqSupply
             let ?hscenv = hscenv
             let ?uniqSupply = uniqSupplyRef
+            GHC.liftIO $ putStrLn "</RDP>"
             pure x{GHC.hpm_module = onModule <$> GHC.hpm_module x}
 
 
