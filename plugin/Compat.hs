@@ -1,8 +1,12 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {- HLINT ignore "Use camelCase" -}
+{- HLINT ignore "Unused LANGUAGE pragma" -}
 
 -- | Module containing the plugin.
 module Compat(module Compat) where
@@ -43,55 +47,79 @@ import IOEnv
 import DynFlags
 import HscTypes
 #endif
+#if __GLASGOW_HASKELL__ >= 904
+import GHC.Types.PkgQual (RawPkgQual(NoRawPkgQual))
+#endif
 import Data.IORef as Compat
 
 ---------------------------------------------------------------------
--- UTILITIES
+-- LOCATIONS
 
-noL :: e -> GenLocated SrcSpan e
-noL = noLoc
+class WithoutLoc a b | b -> a where
+  -- | Without location information
+  --
+  -- Different GHC versions want different kind of location information in
+  -- different places. This class is intended to abstract over this.
+  noL :: a -> b
+
+#if __GLASGOW_HASKELL__ >= 902
+instance WithoutLoc a (GenLocated (SrcAnn ann) a) where
+  noL = reLocA . noLoc
+#endif
+
+instance WithoutLoc a (Located a) where
+  noL = noLoc
+
+instance WithoutLoc (HsTupArg p)         (HsTupArg p)         where noL = id
+instance WithoutLoc (HsLocalBindsLR p q) (HsLocalBindsLR p q) where noL = id
 
 #if __GLASGOW_HASKELL__ < 902
-noLA :: e -> GenLocated SrcSpan e
-noLA = noL
-
-emptyComments :: NoExtField
-emptyComments = noE
-
-noAnn :: NoExtField
-noAnn = noE
-
 reLocA :: Located e -> Located e
 reLocA = id
 
 reLoc :: Located e -> Located e
 reLoc = id
+#endif
+
+---------------------------------------------------------------------
+-- TREE EXTENSIONS
+
+class WithoutExt a where
+  -- | No extension
+  --
+  -- Different GHC versions want different kinds of annotations. This class is
+  -- intended to abstract over this.
+  noE :: a
+
+#if __GLASGOW_HASKELL__ >= 902
+instance WithoutExt (EpAnn a) where
+  noE = EpAnnNotUsed
+
+instance WithoutExt EpAnnComments where
+  noE = emptyComments
+#endif
+
+#if __GLASGOW_HASKELL__ >= 810
+instance WithoutExt NoExtField where
+  noE = noExtField
+#else
+instance WithoutExt NoExt where
+  noE = NoExt
+#endif
+
+---------------------------------------------------------------------
+-- UTILITIES
+
+#if __GLASGOW_HASKELL__ < 902
 
 mkNonDetFastString :: FastString -> FastString
 mkNonDetFastString = id
 
-noL' :: e -> GenLocated SrcSpan e
-noL' = noL
-
 #else
-noLA :: e -> LocatedAn ann e
-noLA = reLocA . noL
-
-noL' :: a -> a
-noL' = id
 
 mkNonDetFastString :: FastString -> NonDetFastString
 mkNonDetFastString = NonDetFastString
-#endif
 
-#if __GLASGOW_HASKELL__ < 810
-type NoExtField = NoExt
-
-noE :: NoExt
-noE = NoExt
-#else
-noE :: NoExtField
-noE = noExtField
 #endif
 
 realSrcLoc :: SrcLoc -> Maybe RealSrcLoc
@@ -104,7 +132,7 @@ realSrcLoc _ = Nothing
 
 #if __GLASGOW_HASKELL__ >= 902
 hsLTyVarBndrToType :: (Anno (IdP (GhcPass p)) ~ SrcSpanAnn' (EpAnn NameAnn)) => LHsTyVarBndr flag (GhcPass p) -> LHsType (GhcPass p)
-hsLTyVarBndrToType x = noLA $ HsTyVar noAnn NotPromoted $ noLA $ hsLTyVarName x
+hsLTyVarBndrToType x = noL $ HsTyVar noE NotPromoted $ noL $ hsLTyVarName x
 #elif __GLASGOW_HASKELL__ >= 900
 hsLTyVarBndrToType :: LHsTyVarBndr flag (GhcPass p) -> LHsType (GhcPass p)
 hsLTyVarBndrToType x = noL $ HsTyVar noE NotPromoted $ noL $ hsLTyVarName x
@@ -139,8 +167,8 @@ mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsIB noE typ))
 #else
 
 -- GHC 9.2+
-mkAppType expr typ = noLA $ HsAppType noSrcSpan expr (HsWC noE typ)
-mkTypeAnn expr typ = noLA $ ExprWithTySig noAnn expr (hsTypeToHsSigWcType typ)
+mkAppType expr typ = noL $ HsAppType noSrcSpan expr (HsWC noE typ)
+mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (hsTypeToHsSigWcType typ)
 
 #endif
 
@@ -150,10 +178,16 @@ mkTypeAnn expr typ = noLA $ ExprWithTySig noAnn expr (hsTypeToHsSigWcType typ)
 mkFunTy a b = noL $ HsFunTy noE a b
 newFunBind a b = FunBind noE a b WpHole []
 
+#elif __GLASGOW_HASKELL__ < 904
+
+-- GHC 9.0 and 9.2
+mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow NormalSyntax) a b
+newFunBind a b = FunBind noE (reLocA a) b []
+
 #else
 
--- GHC 9.0
-mkFunTy a b = noLA $ HsFunTy noAnn (HsUnrestrictedArrow NormalSyntax) a b
+-- GHC >= 9.4
+mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow $ L NoTokenLoc HsNormalTok) a b
 newFunBind a b = FunBind noE (reLocA a) b []
 
 #endif
@@ -175,7 +209,7 @@ compat_m_pats = id
 
 -- 8.10
 compat_m_pats :: [Pat GhcPs] -> [LPat GhcPs]
-compat_m_pats = map noLA
+compat_m_pats = map noL
 
 #endif
 
@@ -194,10 +228,16 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing Fa
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing False False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
+#elif __GLASGOW_HASKELL__ < 904
+
+-- GHC 9.0 and 9.2
+qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing NotBoot False
+    QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
+
 #else
 
--- GHC 9.0
-qualifiedImplicitImport x = noLA $ ImportDecl noAnn NoSourceText (noLA x) Nothing NotBoot False
+-- GHC >= 9.4
+qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) NoRawPkgQual NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
 #endif
@@ -231,4 +271,9 @@ freeTyVars = map reLoc . extractHsTyRdrTyVars
 isLHsForAllTy :: LHsType GhcPs -> Bool
 isLHsForAllTy (L _ (HsForAllTy {})) = True
 isLHsForAllTy _                     = False
+#endif
+
+#if __GLASGOW_HASKELL__ >= 904
+rdrNameFieldOcc :: FieldOcc GhcPs -> LocatedN RdrName
+rdrNameFieldOcc = foLabel
 #endif

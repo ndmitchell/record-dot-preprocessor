@@ -1,10 +1,5 @@
 -- Test for everything that is supported by both the plugin and the preprocessor
 
-{-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures -Wincomplete-record-updates -Wno-unused-top-binds #-} -- can we produce -Wall clean code
-{-# LANGUAGE PartialTypeSignatures, GADTs, StandaloneDeriving, DataKinds, KindSignatures #-} -- also tests we put language extensions before imports
--- 8.8+ doesn't need it to be set explicitly
-{-# LANGUAGE ExistentialQuantification #-}
-
 import Control.Exception
 import Data.Version
 import Data.Proxy

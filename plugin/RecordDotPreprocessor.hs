@@ -38,18 +38,25 @@ import GHC.Types.SrcLoc
 -- | GHC plugin.
 plugin :: GHC.Plugin
 plugin = GHC.defaultPlugin
-    { GHC.parsedResultAction = parsedResultAction
+    { GHC.parsedResultAction = \_cliOptions _modSummary -> ignoreMessages parsedResultAction
     , GHC.pluginRecompile = GHC.purePlugin
     }
     where
-        parsedResultAction _cliOptions _modSummary x = do
+#if __GLASGOW_HASKELL__ >= 904
+        ignoreMessages :: (HsParsedModule -> GHC.Hsc HsParsedModule) -> GHC.ParsedResult -> GHC.Hsc GHC.ParsedResult
+        ignoreMessages f (GHC.ParsedResult modl msgs) =
+            (\modl' -> GHC.ParsedResult modl' msgs) <$> f modl
+#else
+        ignoreMessages = id
+#endif
+
+        parsedResultAction x = do
             hscenv <- dropRnTraceFlags <$> HscMain.getHscEnv
             uniqSupply <- GHC.liftIO (GHC.mkSplitUniqSupply '0')
             uniqSupplyRef <- GHC.liftIO $ newIORef uniqSupply
             let ?hscenv = hscenv
             let ?uniqSupply = uniqSupplyRef
             pure x{GHC.hpm_module = onModule <$> GHC.hpm_module x}
-
 
 ---------------------------------------------------------------------
 -- PLUGIN GUTS
@@ -67,6 +74,14 @@ var_getField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "getField"
 var_setField = GHC.mkRdrQual mod_records $ GHC.mkVarOcc "setField"
 var_dot = GHC.mkRdrUnqual $ GHC.mkVarOcc "."
 
+#if __GLASGOW_HASKELL__ >= 904
+mod_base_records :: GHC.ModuleName
+mod_base_records = GHC.mkModuleName "GHC.Records"
+
+-- | GHC.Records.getField (as opposed to GHC.Records.Extra.getField)
+var_base_getField :: GHC.RdrName
+var_base_getField = GHC.mkRdrQual mod_base_records $ GHC.mkVarOcc "getField"
+#endif
 
 onModule :: PluginEnv => Module -> Module
 onModule x = x { hsmodImports = onImports $ hsmodImports x
@@ -75,7 +90,12 @@ onModule x = x { hsmodImports = onImports $ hsmodImports x
 
 
 onImports :: [LImportDecl GhcPs] -> [LImportDecl GhcPs]
-onImports = (:) $ qualifiedImplicitImport mod_records
+onImports = (++) [
+      qualifiedImplicitImport mod_records
+#if __GLASGOW_HASKELL__ >= 904
+    , qualifiedImplicitImport mod_base_records
+#endif
+    ]
 
 {-
 instance Z.HasField "name" (Company) (String) where hasField _r = (\_x -> _r{name=_x}, (name:: (Company) -> String) _r)
@@ -86,53 +106,71 @@ instance HasField "selector" Record Field where
 instanceTemplate :: FieldOcc GhcPs -> HsType GhcPs -> HsType GhcPs -> InstDecl GhcPs
 instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl
 #if __GLASGOW_HASKELL__ >= 902
-      (noAnn, mempty) (hsTypeToHsSigType $ reLocA typ)
+      (noE, mempty) (hsTypeToHsSigType $ reLocA typ)
 #else
       noE (HsIB noE typ)
 #endif
       (unitBag has) [] [] [] Nothing
     where
+        typ' :: HsType GhcPs -> LHsType GhcPs
         typ' a = mkHsAppTys
-            (noLA (HsTyVar noAnn GHC.NotPromoted (noLA var_HasField)))
-            [noLA (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
-            ,noLA record
-            ,noLA a
+            (noL (HsTyVar noE GHC.NotPromoted (noL var_HasField)))
+            [fieldNameAsType
+            ,noL record
+            ,noL a
             ]
 
         typ = noL $ makeEqQualTy field (unLoc . typ')
 
+        fieldNameAsType :: LHsType GhcPs
+        fieldNameAsType = noL (HsTyLit noE (HsStrTy GHC.NoSourceText (GHC.occNameFS $ GHC.occName $ unLoc $ rdrNameFieldOcc selector)))
+
         has :: LHsBindLR GhcPs GhcPs
-        has = noLA $ newFunBind (noL var_hasField) (mg1 eqn)
+        has = noL $ newFunBind (noL var_hasField) (mg1 eqn)
             where
                 eqn :: Match GhcPs (LHsExpr GhcPs)
                 eqn = Match
-                    { m_ext     = noAnn
-                    , m_ctxt    = FunRhs (noLA var_hasField) GHC.Prefix NoSrcStrict
-                    , m_pats    = compat_m_pats [VarPat noE $ noLA vR]
-                    , m_grhss   = GRHSs emptyComments [noL $ GRHS noAnn [] $ noLA $ ExplicitTuple noAnn [ noL' $ Present noAnn set, noL' $ Present noAnn get] GHC.Boxed] (noL' $ EmptyLocalBinds noE)
+                    { m_ext     = noE
+                    , m_ctxt    = FunRhs (noL var_hasField) GHC.Prefix NoSrcStrict
+                    , m_pats    = compat_m_pats [VarPat noE $ noL vR]
+                    , m_grhss   = GRHSs noE [noL $ GRHS noE [] $ noL $ ExplicitTuple noE [ noL $ Present noE set, noL $ Present noE get] GHC.Boxed] (noL $ EmptyLocalBinds noE)
                     }
-                set = noLA $ HsLam noE $ mg1 Match
-                    { m_ext     = noAnn
+                set = noL $ HsLam noE $ mg1 Match
+                    { m_ext     = noE
                     , m_ctxt    = LambdaExpr
-                    , m_pats    = compat_m_pats [VarPat noE $ noLA vX]
-                    , m_grhss   = GRHSs emptyComments [noL $ GRHS noAnn [] $ noLA update] (noL' $ EmptyLocalBinds noE)
+                    , m_pats    = compat_m_pats [VarPat noE $ noL vX]
+                    , m_grhss   = GRHSs noE [noL $ GRHS noE [] $ noL update] (noL $ EmptyLocalBinds noE)
                     }
                 update :: HsExpr GhcPs
-                update = RecordUpd noAnn (noLA $ GHC.HsVar noE $ noLA vR)
+                update = RecordUpd noE (noL $ GHC.HsVar noE $ noL vR)
 #if __GLASGOW_HASKELL__ >= 902
                     $ Left
 #endif
-                    [noLA $ HsRecField
-#if __GLASGOW_HASKELL__ >= 902
-                      noAnn
+#if __GLASGOW_HASKELL__ >= 904
+                    [noL $ HsFieldBind
+#else
+                    [noL $ HsRecField
 #endif
-                      (noL (Unambiguous noE (rdrNameFieldOcc selector))) (noLA $ GHC.HsVar noE $ noLA vX) False]
+#if __GLASGOW_HASKELL__ >= 902
+                      noE
+#endif
+                      (noL (Unambiguous noE (rdrNameFieldOcc selector))) (noL $ GHC.HsVar noE $ noL vX) False]
+#if __GLASGOW_HASKELL__ >= 904
+                get :: LHsExpr GhcPs
+                get =
+                     (noL $ GHC.HsVar noE $ noL $ var_base_getField)
+                   `mkAppType`
+                     fieldNameAsType
+                   `mkApp`
+                     (noL $ GHC.HsVar noE $ noL $ vR)
+#else
                 get = mkApp
-                    (mkParen $ mkTypeAnn (noLA $ GHC.HsVar noE $ rdrNameFieldOcc selector) (mkFunTy (noLA record) (noLA field)))
-                    (noLA $ GHC.HsVar noE $ noLA vR)
+                    (mkParen $ mkTypeAnn (noL $ GHC.HsVar noE $ rdrNameFieldOcc selector) (mkFunTy (noL record) (noL field)))
+                    (noL $ GHC.HsVar noE $ noL vR)
+#endif
 
         mg1 :: Match GhcPs (LHsExpr GhcPs) -> MatchGroup GhcPs (LHsExpr GhcPs)
-        mg1 x = MG noE (noLA [noLA x]) GHC.Generated
+        mg1 x = MG noE (noL [noL x]) GHC.Generated
 
         vR = GHC.mkRdrUnqual $ GHC.mkVarOcc "r"
         vX = GHC.mkRdrUnqual $ GHC.mkVarOcc "x"
@@ -140,7 +178,7 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl
 
 onDecl :: PluginEnv => Maybe GHC.ModuleName -> LHsDecl GhcPs -> [LHsDecl GhcPs]
 onDecl modName o@(L _ (GHC.TyClD _ x)) = o :
-    [ noLA $ InstD noE $ instanceTemplate field (unLoc record) (unbang typ)
+    [ noL $ InstD noE $ instanceTemplate field (unLoc record) (unbang typ)
     | let fields = nubOrdOn (\(_,_,x,_) -> mkNonDetFastString $ GHC.occNameFS $ GHC.rdrNameOcc $ unLoc $ rdrNameFieldOcc x) $ getFields modName x
     , (record, _, field, typ) <- fields]
 onDecl _ x = [descendBi onExp x]
@@ -159,7 +197,7 @@ getFields modName DataDecl{tcdDataDefn=HsDataDefn{..}, ..} = concatMap ctor dd_c
         defVars vars = [v | L _ v <- hsLTyVarLocNames vars]
 
         -- A value of this data declaration will have this type.
-        result = foldl (\x y -> noL $ HsAppTy noE (reLocA x) $ hsLTyVarBndrToType y) (noL $ HsTyVar noAnn GHC.NotPromoted tyName) $ hsq_explicit tcdTyVars
+        result = foldl (\x y -> noL $ HsAppTy noE (reLocA x) $ hsLTyVarBndrToType y) (noL $ HsTyVar noE GHC.NotPromoted tyName) $ hsq_explicit tcdTyVars
         tyName = case (tcdLName, modName) of
             (L l (GHC.Unqual name), Just modName') -> L l (GHC.Qual modName' name)
             _ -> tcdLName
@@ -175,7 +213,9 @@ conClosedFields resultVars = \case
                 not $ isLHsForAllTy ty,
                 name <- cd_fld_names
         ]
-#if __GLASGOW_HASKELL__ >= 901
+#if __GLASGOW_HASKELL__ >= 904
+    ConDeclGADT {con_g_args = RecConGADT (L _ args) _, con_res_ty, con_names} ->
+#elif __GLASGOW_HASKELL__ >= 901
     ConDeclGADT {con_g_args = RecConGADT (L _ args), con_res_ty, con_names} ->
 #else
     ConDeclGADT {con_args = RecCon (L _ args), con_res_ty, con_names} ->
@@ -215,7 +255,7 @@ onExp (reLoc -> L o (SectionR _ mid@(isDot -> True) rhs))
     , Just sels <- getSelectors rhs
     -- Don't bracket here. The argument came in as a section so it's
     -- already enclosed in brackets.
-    = reLocA $ setL o $ foldl1 (\x y -> noL $ OpApp noAnn (reLocA x) (mkVar var_dot) (reLocA y))
+    = reLocA $ setL o $ foldl1 (\x y -> noL $ OpApp noE (reLocA x) (mkVar var_dot) (reLocA y))
                       $ map ( \ sel -> reLoc $ mkVar var_getField `mkAppType` sel) $ reverse sels
 
 -- Turn a{b=c, ...} into setField calls
@@ -225,19 +265,27 @@ onExp (L o upd@RecordUpd{rupd_expr,rupd_flds= Left (fld:flds)})
 onExp (L o upd@RecordUpd{rupd_expr,rupd_flds= fld:flds})
 #endif
     | adjacentBy 1 rupd_expr fld
-    = onExp $ f rupd_expr $ fld:flds
+    = onExp $ f rupd_expr $ map unLoc $ fld:flds
     where
+        f :: LHsExpr GhcPs -> [HsRecUpdField GhcPs] -> LHsExpr GhcPs
         f expr [] = expr
-        f expr (L _ (HsRecField { hsRecFieldLbl = fmap rdrNameAmbiguousFieldOcc -> lbl
-                                , hsRecFieldArg = arg
-                                , hsRecPun = pun } ) : flds)
+#if __GLASGOW_HASKELL__ >= 904
+        f expr (HsFieldBind { hfbLHS = (fmap rdrNameAmbiguousFieldOcc . reLoc) -> lbl
+                            , hfbRHS  = arg
+                            , hfbPun  = pun
+                            } : flds)
+#else
+        f expr (HsRecField { hsRecFieldLbl = fmap rdrNameAmbiguousFieldOcc -> lbl
+                           , hsRecFieldArg = arg
+                           , hsRecPun      = pun
+                           } : flds)
+#endif
             | let sel = mkSelector lbl
-            , let arg2 = if pun then noLA $ HsVar noE (reLocA lbl) else arg
+            , let arg2 = if pun then noL $ HsVar noE (reLocA lbl) else arg
             , let expr2 = mkParen $ mkVar var_setField `mkAppType` sel `mkApp` expr `mkApp` arg2  -- 'expr' never needs bracketing.
             = f expr2 flds
 
 onExp x = descend onExp x
-
 
 mkSelector :: Located GHC.RdrName -> LHsType GhcPs
 mkSelector (L o x) = reLocA $ L o $ HsTyLit noE $ HsStrTy GHC.NoSourceText $ GHC.occNameFS $ GHC.rdrNameOcc x
@@ -284,13 +332,13 @@ isDot (L _ (HsVar _ (L _ op))) = op == var_dot
 isDot _ = False
 
 mkVar :: GHC.RdrName -> LHsExpr GhcPs
-mkVar = noLA . HsVar noE . noLA
+mkVar = noL . HsVar noE . noL
 
 mkParen :: LHsExpr GhcPs -> LHsExpr GhcPs
-mkParen = noLA . HsPar noAnn
+mkParen = mkHsPar
 
 mkApp :: LHsExpr GhcPs -> LHsExpr GhcPs -> LHsExpr GhcPs
-mkApp x y = noLA $ HsApp noAnn x y
+mkApp x y = noL $ HsApp noE x y
 
 #if __GLASGOW_HASKELL__ >= 902
 -- | Are the end of a and the start of b next to each other, no white space
@@ -320,22 +368,32 @@ makeEqQualTy :: HsType GhcPs -> (HsType GhcPs -> HsType GhcPs) -> HsType GhcPs
 makeEqQualTy rArg fAbs
   = HsQualTy noE
   (
-#if __GLASGOW_HASKELL__ >= 902
+#if __GLASGOW_HASKELL__ >= 902 && __GLASGOW_HASKELL__ < 904
    Just $
 #endif
-    noLA qualCtx
+    noL qualCtx
   )
-  (noLA (fAbs tyVar))
+  (noL (fAbs tyVar))
     where
         var = GHC.nameRdrName $ GHC.mkUnboundName $ GHC.mkTyVarOcc "aplg"
 
         tyVar :: HsType GhcPs
-        tyVar = HsTyVar noAnn GHC.NotPromoted (noLA var)
+        tyVar = HsTyVar noE GHC.NotPromoted (noL var)
 
         var_tilde = GHC.mkOrig GHC.gHC_TYPES $ GHC.mkClsOcc "~"
 
         eqQual :: HsType GhcPs
-        eqQual = HsOpTy noE (noLA (HsParTy noAnn (noLA rArg))) (noLA var_tilde) (noLA tyVar)
+        eqQual =
+          HsOpTy
+#if __GLASGOW_HASKELL__ >= 904
+            EpAnnNotUsed
+            GHC.NotPromoted -- TODO: Is this right?
+#else
+            noE
+#endif
+            (noL (HsParTy noE (noL rArg)))
+            (noL var_tilde)
+            (noL tyVar)
 
         qualCtx :: HsContext GhcPs
-        qualCtx = [noLA (HsParTy noAnn (noLA eqQual))]
+        qualCtx = [noL (HsParTy noE (noL eqQual))]

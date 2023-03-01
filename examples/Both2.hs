@@ -1,8 +1,5 @@
 -- Test DuplicateRecordFields extension
 
-{-# OPTIONS_GHC -Werror -Wall -Wno-type-defaults -Wno-partial-type-signatures #-} -- can we produce -Wall clean code
-{-# LANGUAGE DuplicateRecordFields #-}
-
 main :: IO ()
 main = test1 >> putStrLn "All worked"
 

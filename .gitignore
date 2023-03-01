@@ -7,3 +7,5 @@ stack.yaml.lock
 examples/*_out.hs
 *.hi
 *.o
+.envrc
+.ghc.environment.*
