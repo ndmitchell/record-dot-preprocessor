@@ -1,5 +1,6 @@
 Changelog for record-dot-preprocessor
 
+0.2.16, released 2023-03-03
     #57, support GHC 9.4
     #54, skip polymorphic fields with forall
     #52, properly deal with nested block comments
