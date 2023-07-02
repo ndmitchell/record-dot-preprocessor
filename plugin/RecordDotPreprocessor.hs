@@ -45,7 +45,7 @@ plugin = GHC.defaultPlugin
 #if __GLASGOW_HASKELL__ >= 904
         ignoreMessages :: (HsParsedModule -> GHC.Hsc HsParsedModule) -> GHC.ParsedResult -> GHC.Hsc GHC.ParsedResult
         ignoreMessages f (GHC.ParsedResult modl msgs) =
-            (\modl' -> GHC.ParsedResult modl' msgs) <$> f modl
+            (`GHC.ParsedResult` msgs) <$> f modl
 #else
         ignoreMessages = id
 #endif
@@ -158,11 +158,11 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl
 #if __GLASGOW_HASKELL__ >= 904
                 get :: LHsExpr GhcPs
                 get =
-                     (noL $ GHC.HsVar noE $ noL $ var_base_getField)
+                     noL (GHC.HsVar noE $ noL var_base_getField)
                    `mkAppType`
                      fieldNameAsType
                    `mkApp`
-                     (noL $ GHC.HsVar noE $ noL $ vR)
+                     noL (GHC.HsVar noE $ noL vR)
 #else
                 get = mkApp
                     (mkParen $ mkTypeAnn (noL $ GHC.HsVar noE $ rdrNameFieldOcc selector) (mkFunTy (noL record) (noL field)))
@@ -270,7 +270,7 @@ onExp (L o upd@RecordUpd{rupd_expr,rupd_flds= fld:flds})
         f :: LHsExpr GhcPs -> [HsRecUpdField GhcPs] -> LHsExpr GhcPs
         f expr [] = expr
 #if __GLASGOW_HASKELL__ >= 904
-        f expr (HsFieldBind { hfbLHS = (fmap rdrNameAmbiguousFieldOcc . reLoc) -> lbl
+        f expr (HsFieldBind { hfbLHS = fmap rdrNameAmbiguousFieldOcc . reLoc -> lbl
                             , hfbRHS  = arg
                             , hfbPun  = pun
                             } : flds)
