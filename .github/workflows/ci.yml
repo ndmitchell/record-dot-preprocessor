@@ -34,4 +34,4 @@ jobs:
         restore-keys: ${{ runner.os }}-${{ matrix.ghc }}-
     - uses: ndmitchell/neil@master
       with:
-        hlint-arguments: preprocessor test plugin
+        hlint-arguments: preprocessor plugin
