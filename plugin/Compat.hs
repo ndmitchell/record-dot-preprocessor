@@ -209,7 +209,7 @@ newFunBind a b = FunBind noE (reLocA a) b []
 
 -- GHC 9.6+
 mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow $ L NoTokenLoc HsNormalTok) a b
-newFunBind a b = FunBind noE (reLocA a) b
+newFunBind a = FunBind noE (reLocA a)
 
 #else
 
