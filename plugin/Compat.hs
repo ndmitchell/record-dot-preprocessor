@@ -115,6 +115,9 @@ instance WithoutExt XImportDeclPass where
 
 instance WithoutExt GHC.Types.Basic.Origin where
   noE = Generated
+#if __GLASGOW_HASKELL__ >= 908
+          SkipPmc
+#endif
 #endif
 
 ---------------------------------------------------------------------
