@@ -31,6 +31,9 @@ import qualified GHC.Builtin.Names as GHC
 import qualified GHC.Plugins as GHC
 import GHC.Types.SrcLoc
 #endif
+#if MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+import qualified Data.List.NonEmpty as NE
+#endif
 
 ---------------------------------------------------------------------
 -- PLUGIN WRAPPER
@@ -170,7 +173,11 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl
 #endif
 
         mg1 :: Match GhcPs (LHsExpr GhcPs) -> MatchGroup GhcPs (LHsExpr GhcPs)
+#if MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+        mg1 x = MG noE (noL [noL x])
+#else
         mg1 x = MG noE (noL [noL x]) GHC.Generated
+#endif
 
         vR = GHC.mkRdrUnqual $ GHC.mkVarOcc "r"
         vX = GHC.mkRdrUnqual $ GHC.mkVarOcc "x"
@@ -225,7 +232,11 @@ conClosedFields resultVars = \case
              null (freeTyVars ty \\ freeTyVars con_res_ty),
              not $ isLHsForAllTy ty,
              name <- cd_fld_names,
+#if MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+             con_name <- NE.toList con_names
+#else
              con_name <- con_names
+#endif
          ]
     _ -> []
     where

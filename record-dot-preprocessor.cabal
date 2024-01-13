@@ -39,7 +39,7 @@ library
     build-depends:
         base >= 4.8 && < 5,
         uniplate,
-        ghc >=8.6 && <9.5,
+        ghc >=8.6 && <9.7,
         extra
     exposed-modules:
         RecordDotPreprocessor

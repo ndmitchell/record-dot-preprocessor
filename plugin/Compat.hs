@@ -107,6 +107,14 @@ instance WithoutExt NoExt where
   noE = NoExt
 #endif
 
+#if MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+instance WithoutExt XImportDeclPass where
+  noE = XImportDeclPass noE NoSourceText True {- implicit -}
+
+instance WithoutExt GHC.Types.Basic.Origin where
+  noE = Generated
+#endif
+
 ---------------------------------------------------------------------
 -- UTILITIES
 
@@ -143,6 +151,8 @@ hsLTyVarBndrToType x = noL $ HsTyVar noE NotPromoted $ noL $ hsLTyVarName x
 
 #if __GLASGOW_HASKELL__ < 811
 type Module = HsModule GhcPs
+#elif MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+type Module = HsModule GhcPs
 #else
 type Module = HsModule
 #endif
@@ -164,9 +174,15 @@ mkTypeAnn expr typ = noL $ ExprWithTySig (HsWC noE (HsIB noE typ)) expr
 mkAppType expr typ = noL $ HsAppType noE expr (HsWC noE typ)
 mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (HsWC noE (HsIB noE typ))
 
+#elif MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+
+-- GHC 9.6+
+mkAppType expr typ = noL $ HsAppType noE expr noHsTok (HsWC noE typ)
+mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (hsTypeToHsSigWcType typ)
+
 #else
 
--- GHC 9.2+
+-- GHC 9.2-9.4
 mkAppType expr typ = noL $ HsAppType noSrcSpan expr (HsWC noE typ)
 mkTypeAnn expr typ = noL $ ExprWithTySig noE expr (hsTypeToHsSigWcType typ)
 
@@ -184,9 +200,15 @@ newFunBind a b = FunBind noE a b WpHole []
 mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow NormalSyntax) a b
 newFunBind a b = FunBind noE (reLocA a) b []
 
+#elif MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+
+-- GHC 9.6+
+mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow $ L NoTokenLoc HsNormalTok) a b
+newFunBind a b = FunBind noE (reLocA a) b
+
 #else
 
--- GHC >= 9.4
+-- GHC 9.4
 mkFunTy a b = noL $ HsFunTy noE (HsUnrestrictedArrow $ L NoTokenLoc HsNormalTok) a b
 newFunBind a b = FunBind noE (reLocA a) b []
 
@@ -234,9 +256,15 @@ qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing Fa
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) Nothing NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
+#elif MIN_VERSION_GLASGOW_HASKELL(9,6,0,0)
+
+-- GHC 9.6+
+qualifiedImplicitImport x = noL $ ImportDecl noE (noL x) NoRawPkgQual NotBoot False
+    QualifiedPost {- qualified -} Nothing Nothing
+
 #else
 
--- GHC >= 9.4
+-- GHC 9.4
 qualifiedImplicitImport x = noL $ ImportDecl noE NoSourceText (noL x) NoRawPkgQual NotBoot False
     QualifiedPost {- qualified -} True {- implicit -} Nothing Nothing
 
