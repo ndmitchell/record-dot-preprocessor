@@ -146,7 +146,9 @@ instanceTemplate selector record field = ClsInstD noE $ ClsInstDecl
                     }
                 update :: HsExpr GhcPs
                 update = RecordUpd noE (noL $ GHC.HsVar noE $ noL vR)
-#if __GLASGOW_HASKELL__ >= 902
+#if __GLASGOW_HASKELL__ >= 908
+                    $ RegularRecUpdFields noE
+#elif __GLASGOW_HASKELL__ >= 902
                     $ Left
 #endif
 #if __GLASGOW_HASKELL__ >= 904
@@ -270,7 +272,9 @@ onExp (reLoc -> L o (SectionR _ mid@(isDot -> True) rhs))
                       $ map ( \ sel -> reLoc $ mkVar var_getField `mkAppType` sel) $ reverse sels
 
 -- Turn a{b=c, ...} into setField calls
-#if __GLASGOW_HASKELL__ >= 902
+#if __GLASGOW_HASKELL__ >= 908
+onExp (L o upd@RecordUpd{rupd_expr,rupd_flds= RegularRecUpdFields _ (fld:flds)})
+#elif __GLASGOW_HASKELL__ >= 902
 onExp (L o upd@RecordUpd{rupd_expr,rupd_flds= Left (fld:flds)})
 #else
 onExp (L o upd@RecordUpd{rupd_expr,rupd_flds= fld:flds})
@@ -278,9 +282,18 @@ onExp (L o upd@RecordUpd{rupd_expr,rupd_flds= fld:flds})
     | adjacentBy 1 rupd_expr fld
     = onExp $ f rupd_expr $ map unLoc $ fld:flds
     where
+#if __GLASGOW_HASKELL__ >= 908
+        f :: LHsExpr GhcPs -> [HsRecUpdField GhcPs GhcPs] -> LHsExpr GhcPs
+#else
         f :: LHsExpr GhcPs -> [HsRecUpdField GhcPs] -> LHsExpr GhcPs
+#endif
         f expr [] = expr
-#if __GLASGOW_HASKELL__ >= 904
+#if __GLASGOW_HASKELL__ >= 908
+        f expr (HsFieldBind { hfbLHS = fmap ambiguousFieldOccRdrName . reLoc -> lbl
+                            , hfbRHS  = arg
+                            , hfbPun  = pun
+                            } : flds)
+#elif __GLASGOW_HASKELL__ >= 904
         f expr (HsFieldBind { hfbLHS = fmap rdrNameAmbiguousFieldOcc . reLoc -> lbl
                             , hfbRHS  = arg
                             , hfbPun  = pun

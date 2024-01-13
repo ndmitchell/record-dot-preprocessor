@@ -19,7 +19,7 @@ bug-reports:        https://github.com/ndmitchell/record-dot-preprocessor/issues
 extra-doc-files:
     README.md
     CHANGES.txt
-tested-with:        GHC==9.6, GHC==9.4, GHC==9.2, GHC==9.0, GHC==8.10, GHC==8.8
+tested-with:        GHC==9.8, GHC==9.6, GHC==9.4, GHC==9.2, GHC==9.0, GHC==8.10, GHC==8.8
 extra-source-files:
     examples/Both.hs
     examples/Both2.hs
@@ -39,7 +39,7 @@ library
     build-depends:
         base >= 4.8 && < 5,
         uniplate,
-        ghc >=8.6 && <9.7,
+        ghc >=8.6 && <9.9,
         extra
     exposed-modules:
         RecordDotPreprocessor
