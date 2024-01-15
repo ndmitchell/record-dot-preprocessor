@@ -106,7 +106,7 @@ editAddPreamble o@xs
         -- if you import two things that have preprocessor_unused, and export them as modules, you don't want them to clash
         trailing modName = "_recordDotPreprocessorUnused" ++ uniq ++ " :: Z.HasField \"\" r a => r -> a;" ++
                            "_recordDotPreprocessorUnused" ++ uniq ++ " = Z.getField @\"\""
-            where uniq = filter isAlphaNum $ concat $ take 19 $ takeWhile modPart $ map lexeme $ unparens modName
+            where uniq = concatMap (filter isAlphaNum) $ take 19 $ takeWhile modPart $ map lexeme $ unparens modName
         modPart x = x == "." || all isUpper (take 1 x)
 
 
